@@ -1,0 +1,35 @@
+/* Add this at the end of the file */
+
+/* Fix ReactToastify passive event listener warning */
+.Toastify__toast-container {
+  touch-action: none;
+}
+
+.Toastify__toast {
+  touch-action: none;
+}
+
+/* Ensure proper z-index for toasts */
+.Toastify__toast-container--top-center {
+  z-index: 9999;
+}
+
+.Toastify__toast-container--top-right {
+  z-index: 9999;
+}
+
+.Toastify__toast-container--top-left {
+  z-index: 9999;
+}
+
+.Toastify__toast-container--bottom-center {
+  z-index: 9999;
+}
+
+.Toastify__toast-container--bottom-right {
+  z-index: 9999;
+}
+
+.Toastify__toast-container--bottom-left {
+  z-index: 9999;
+} 
