@@ -56,15 +56,28 @@ export const LandingSection = () => {
     <Box
       sx={{
         position: 'relative',
-        height: { xs: '80vh', sm: '90vh', md: '100vh' },
+        height: { xs: '80vh', sm: '70vh', md: '100vh' },
         minHeight: { xs: '500px', sm: '600px' },
         width: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: `url('/silver-bar.jpg.png') center/cover no-repeat`,
+        background: 'white',
         boxShadow: 2,
         overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: `url('/silver-bar.jpg.png') center/cover no-repeat`,
+          border: { xs: '1px solid #e0e0e0', sm: '1px solid #e0e0e0', md: '1px solid #e0e0e0' },
+          borderRadius: { xs: '12px', sm: '16px', md: '20px' },
+          boxSizing: 'border-box',
+          zIndex: 0,
+        }
       }}
     >
       {/* Enhanced shine effect */}

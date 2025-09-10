@@ -6,6 +6,9 @@ const { verifyToken } = require('../middleware/VerifyToken');
 // Get all orders
 router.get("/", verifyToken, orderController.getOrders);
 
+// Get orders by user ID
+router.get("/user/:id", verifyToken, orderController.getByUserId);
+
 // Create new order
 router.post("/", verifyToken, orderController.createOrder);
 

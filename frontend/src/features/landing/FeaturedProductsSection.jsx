@@ -103,7 +103,7 @@ export const FeaturedProductsSection = () => {
 
       <Grid 
         container 
-        spacing={{ xs: 2, md: 3 }} 
+        spacing={{ xs: 3, sm: 4, md: 5 }} 
         justifyContent="center"
         sx={{ maxWidth: 1400, mx: 'auto' }}
       >
@@ -114,11 +114,12 @@ export const FeaturedProductsSection = () => {
             sm={6} 
             md={3} 
             key={category.id}
-            sx={{ display: 'flex' }}
+            sx={{ display: 'flex', justifyContent: 'center' }}
           >
             <Card 
               sx={{ 
                 width: '100%',
+                maxWidth: 320,
                 borderRadius: 3,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                 transition: 'all 0.3s ease-in-out',
@@ -154,6 +155,7 @@ export const FeaturedProductsSection = () => {
                     height: '40%',
                     display: 'flex',
                     alignItems: 'flex-end',
+                    justifyContent: 'center',
                     p: 2
                   }}
                 >
@@ -181,7 +183,7 @@ export const FeaturedProductsSection = () => {
                   </Button>
                 </Box>
               </Box>
-              <CardContent sx={{ p: 2 }}>
+              <CardContent sx={{ p: 2, textAlign: 'center' }}>
                 <Typography 
                   variant="body2" 
                   color="text.secondary"

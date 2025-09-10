@@ -15,12 +15,15 @@ import { useAuthCheck } from "./hooks/useAuth/useAuthCheck";
 import { useFetchLoggedInUserDetails } from "./hooks/useAuth/useFetchLoggedInUserDetails";
 import { Box, CircularProgress } from '@mui/material';
 import { useEffect } from 'react';
-import { CartPage, CheckoutPage, ForgotPasswordPage, HomePage, LoginPage, OrderSuccessPage, OtpVerificationPage, ProductDetailsPage, ResetPasswordPage, SignupPage, UserOrdersPage, UserProfilePage, WishlistPage, AboutPage, ContactPage, UserDashboardPage, AdminPage, AddProductPage, ProductUpdatePage } from './pages';
+import { CartPage, CheckoutPage, ForgotPasswordPage, HomePage, LoginPage, OrderSuccessPage, OtpVerificationPage, ProductDetailsPage, ResetPasswordPage, SignupPage, UserOrdersPage, UserProfilePage, WishlistPage, AboutPage, ContactPage, UserDashboardPage, AdminPage } from './pages';
 import ChitPlansPage from './features/chit-plans/ChitPlansPage';
 import ShopPage from './features/shop/ShopPage';
 import TestPage from './pages/TestPage';
 import { Navbar } from './features/navigation/components/Navbar';
 import { Footer } from './features/footer/Footer';
+import { LoginPopupProvider, useLoginPopup } from './contexts/LoginPopupContext';
+import { LoginPopup } from './features/auth/components/LoginPopup';
+import { SignupPopup } from './features/auth/components/SignupPopup';
 
 function App() {
 
@@ -32,19 +35,46 @@ function App() {
 
   const Layout = () => {
     const location = useLocation();
+    const { isLoginPopupOpen, closeLoginPopup, isSignupPopupOpen, closeSignupPopup } = useLoginPopup();
+    const { openLoginPopup, openSignupPopup } = useLoginPopup();
 
     useEffect(() => {
-      // Scroll to top on route change
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Scroll behavior on route change
+      if (location.hash) {
+        // Defer until DOM updates
+        setTimeout(() => {
+          const id = location.hash.replace('#', '');
+          const el = document.getElementById(id);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 0);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      // Intercept auth routes to show popups instead of pages
+      if (location.pathname === '/login') {
+        openLoginPopup();
+        // replace navigation to home so the URL doesn't stay on /login
+        window.history.replaceState(null, '', '/');
+      } else if (location.pathname === '/signup') {
+        openSignupPopup();
+        window.history.replaceState(null, '', '/');
+      }
     }, [location.pathname]);
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Navbar />
+        {location.pathname !== '/shop' && !location.pathname.startsWith('/product-details') && !location.pathname.startsWith('/chit-plans') && location.pathname !== '/user-dashboard' && <Navbar />}
         <Box sx={{ flexGrow: 1 }}>
           <Outlet />
         </Box>
-        <Footer />
+        {!location.pathname.startsWith('/chit-plans') && <Footer />}
+        <LoginPopup open={isLoginPopupOpen} onClose={closeLoginPopup} />
+        <SignupPopup open={isSignupPopupOpen} onClose={closeSignupPopup} />
       </Box>
     );
   };
@@ -65,7 +95,6 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/product-details/:id" element={<ProductDetailsPage />} />
-        <Route path="/chit-plans/*" element={<ChitPlansPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/signup" element={<SignupPage />} />
@@ -81,6 +110,7 @@ function App() {
         <Route path="/orders" element={<Protected><UserOrdersPage /></Protected>} />
         <Route path="/checkout" element={<Protected><CheckoutPage /></Protected>} />
         <Route path="/order-success/:id" element={<Protected><OrderSuccessPage /></Protected>} />
+        <Route path="/chit-plans/*" element={<ChitPlansPage />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -91,7 +121,6 @@ function App() {
     createRoutesFromElements(
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/chit-plans/*" element={<ChitPlansPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/shop" element={<ShopPage />} />
@@ -101,6 +130,7 @@ function App() {
         <Route path="/user-dashboard" element={<Protected><UserDashboardPage /></Protected>} />
         <Route path="/checkout" element={<Protected><CheckoutPage /></Protected>} />
         <Route path="/order-success/:id" element={<Protected><OrderSuccessPage /></Protected>} />
+        <Route path="/chit-plans/*" element={<ChitPlansPage />} />
         <Route path="/orders" element={<Protected><UserOrdersPage /></Protected>} />
         <Route path="/wishlist" element={<Protected><WishlistPage /></Protected>} />
         <Route path="/logout" element={<Protected><Logout /></Protected>} />
@@ -126,7 +156,7 @@ function App() {
 
 
   return (
-    <>
+    <LoginPopupProvider>
       {!isAuthChecked ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
           <CircularProgress />
@@ -138,7 +168,7 @@ function App() {
       ) : (
         <RouterProvider router={protectedRoutes} />
       )}
-    </>
+    </LoginPopupProvider>
   );
 }
 

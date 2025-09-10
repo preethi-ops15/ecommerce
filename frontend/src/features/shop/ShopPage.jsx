@@ -3,19 +3,20 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box, Grid, Typography, Card, CardContent, CardActions,
-  Button, Stack, CircularProgress, TextField, InputAdornment,
+  Button, Stack, CircularProgress,
   FormControl, InputLabel, Select, MenuItem, Slider, Checkbox,
-  FormControlLabel, Divider, Chip, Drawer, IconButton, Pagination, Container, Rating, Paper
+  FormControlLabel, Divider, Chip, Drawer, IconButton, Pagination, Container, Rating, Paper, Dialog, DialogContent, Badge
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  FilterList as FilterListIcon,
-  Close as CloseIcon,
-  Refresh as RefreshIcon
-} from '@mui/icons-material';
+import { FilterList as FilterListIcon, Close as CloseIcon, Refresh as RefreshIcon, Home as HomeIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import { fetchProductsAsync, selectProducts, selectProductStatus } from '../products/ProductSlice';
+import { selectCartItems } from '../cart/CartSlice';
+import { selectWishlistItems } from '../wishlist/WishlistSlice';
+import { selectLoggedInUser } from '../auth/AuthSlice';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
+import { useLoginPopup } from '../../contexts/LoginPopupContext';
 import { getImageUrl } from '../../utils/imageUtils';
 import { CompactMetalRatesWidget } from '../metal-rates';
 import ProductCard from './ProductCard';
@@ -30,12 +31,19 @@ const ShopPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const products = useSelector(selectProducts);
   const status = useSelector(selectProductStatus);
+  const cartItems = useSelector(selectCartItems);
+  const wishlistItems = useSelector(selectWishlistItems);
+  const loggedInUser = useSelector(selectLoggedInUser);
+  const { openLoginPopup } = useLoginPopup();
   
   // State for filters and search
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
+  const [ratesOpen, setRatesOpen] = useState(true); // auto-open on enter
+  const [expandedCategories, setExpandedCategories] = useState({});
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -47,6 +55,31 @@ const ShopPage = () => {
   
   // Categories matching backend categories
   const categories = ['rings', 'necklaces', 'earrings', 'bracelets', 'bangles', 'chains', 'pendants', 'nose-pins'];
+
+  // Order: bracelets first, then rings, then remaining found in products
+  const orderedCategories = () => {
+    const present = Array.from(new Set(products.map(p => p.category?.toLowerCase()).filter(Boolean)));
+    const priority = ['bracelets', 'rings'];
+    const rest = present.filter(c => !priority.includes(c));
+    return [...priority.filter(c => present.includes(c)), ...rest];
+  };
+
+  const productsByCategory = (cat) => products.filter(p => (p.category || '').toLowerCase() === cat);
+
+  const visibleProducts = (cat, limit = null) => {
+    const list = productsByCategory(cat);
+    return limit ? list.slice(0, limit) : list;
+  };
+
+  const handleViewMoreCategory = (cat) => {
+    // set URL param and local state, then fetch immediately for snappy UX
+    setSelectedCategories([cat]);
+    setSearchParams({ category: cat });
+    const filters = { search: '', category: [cat], sort: { sort: 'createdAt', order: 'desc' } };
+    dispatch(fetchProductsAsync(filters));
+    // After viewing more, show sort dropdown by closing any filter drawer
+    setFilterDrawerOpen(false);
+  };
   
 
 
@@ -103,6 +136,45 @@ const ShopPage = () => {
     setShowFilters(false); // Close filters after applying
   };
 
+  // Helper: parse gender from description if present (fallback UI filter only)
+  const extractGender = (product) => {
+    const text = `${product.description || ''}`.toLowerCase();
+    if (text.includes('gender: men') || text.includes('for men')) return 'men';
+    if (text.includes('gender: women') || text.includes('for women')) return 'women';
+    if (text.includes('unisex')) return 'unisex';
+    return '';
+  };
+
+  // Compute products to display when a single category is selected, applying client-side sort/filter where needed
+  const getDisplayedProducts = () => {
+    let list = [...products];
+
+    // Gender filter only when gender option selected
+    if (sortBy === 'gender-men') {
+      list = list.filter(p => extractGender(p) === 'men');
+    } else if (sortBy === 'gender-women') {
+      list = list.filter(p => extractGender(p) === 'women');
+    }
+
+    // Client-side best-seller sorting heuristic (fallback to discountPercentage, then stockQuantity)
+    if (sortBy === 'best-seller') {
+      list.sort((a, b) => {
+        const ad = a.discountPercentage || 0; const bd = b.discountPercentage || 0;
+        if (bd !== ad) return bd - ad;
+        const as = a.stockQuantity || 0; const bs = b.stockQuantity || 0;
+        return bs - as;
+      });
+    } else if (sortBy === 'newest') {
+      list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    } else if (sortBy === 'price-low') {
+      list.sort((a, b) => (a.price || 0) - (b.price || 0));
+    } else if (sortBy === 'price-high') {
+      list.sort((a, b) => (b.price || 0) - (a.price || 0));
+    }
+
+    return list;
+  };
+
   // Load products on component mount
   useEffect(() => {
     dispatch(fetchProductsAsync({}));
@@ -117,223 +189,170 @@ const ShopPage = () => {
   }, [searchQuery, selectedCategories, sortBy]);
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header Section */}
-      <Stack spacing={3} sx={{ mb: 4 }}>
-        <Typography 
-          variant="h3" 
-          fontWeight={700}
-          sx={{ 
-            color: '#1a1a1a',
-            textAlign: 'center',
-            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      {/* Minimal Shop Header: Logo + Search icon + Wishlist/Cart */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, position: 'sticky', top: 8, zIndex: 5 }}>
+        {/* Logo */}
+        <Box
+          component="a"
+          href="/"
+          sx={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 44, height: 44, borderRadius: '50%', backgroundColor: '#d4af37', textDecoration: 'none',
+            transition: 'all 0.3s ease', '&:hover': { transform: 'scale(1.05)', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }
           }}
         >
-          Premium Silver Collection
-        </Typography>
-        <Typography 
-          variant="h6" 
-          color="text.secondary"
-          sx={{ 
-            textAlign: 'center',
-            color: '#666',
-            fontWeight: 400
-          }}
-        >
-          Discover our exquisite collection of handcrafted silver jewelry
-        </Typography>
-      </Stack>
+          <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem', fontFamily: 'serif' }}>SJ</Typography>
+        </Box>
 
-      {/* Main Content with Sidebar */}
-      <Grid container spacing={3}>
-        {/* Left Sidebar - Metal Rates & Filters */}
-        <Grid item xs={12} md={3}>
-          <Box sx={{ position: 'sticky', top: 20 }}>
-            {/* Metal Rates Widget */}
-            <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
-              <CompactMetalRatesWidget />
-            </Paper>
+        {/* Sticky Live Rates button */}
+        <Box sx={{ ml: 'auto', mr: 2, position: 'sticky', top: 8 }}>
+          <Button
+            variant="outlined"
+            onClick={() => setRatesOpen(true)}
+            sx={{ borderColor: '#d4af37', color: '#d4af37', fontWeight: 600, textTransform: 'none', '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
+          >
+            Live Rates
+          </Button>
+        </Box>
 
-            {/* Filters Section */}
-            <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#1a1a1a' }}>
-                Quick Filters
-              </Typography>
-              
-              {/* Categories */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#666' }}>
-                  Categories
-                </Typography>
-                <Stack spacing={1}>
-                  {categories.map((category) => (
-                    <Button
-                      key={category}
-                      variant={selectedCategories.includes(category) ? "contained" : "outlined"}
-                      onClick={() => handleCategoryChange(category)}
-                      size="small"
-                      sx={{
-                        backgroundColor: selectedCategories.includes(category) ? '#d4af37' : 'transparent',
-                        color: selectedCategories.includes(category) ? 'white' : '#666',
-                        borderColor: selectedCategories.includes(category) ? '#d4af37' : '#e0e0e0',
-                        fontWeight: 600,
-                        textTransform: 'none',
-                        fontSize: '0.8rem',
-                        py: 0.5,
-                        '&:hover': {
-                          backgroundColor: selectedCategories.includes(category) ? '#b8860b' : '#f8f9fa',
-                          borderColor: selectedCategories.includes(category) ? '#b8860b' : '#d4af37'
-                        }
-                      }}
-                    >
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </Button>
-                  ))}
-                </Stack>
-              </Box>
+        {/* Icons (Wishlist, Cart) */}
+        <Stack direction="row" spacing={1} alignItems="center">
+          <IconButton
+            onClick={() => navigate('/')}
+            sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+          >
+            <HomeIcon />
+          </IconButton>
+          <IconButton
+            onClick={() => {
+              if (loggedInUser) { navigate('/wishlist'); } else { sessionStorage.setItem('redirectAfterLogin', '/wishlist'); openLoginPopup(); }
+            }}
+            sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+          >
+            <Badge badgeContent={wishlistItems?.length || 0} color="error">
+              <FavoriteBorderIcon />
+            </Badge>
+          </IconButton>
+          <IconButton
+            onClick={() => {
+              if (loggedInUser) { navigate('/cart'); } else { sessionStorage.setItem('redirectAfterLogin', '/cart'); openLoginPopup(); }
+            }}
+            sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+          >
+            <Badge badgeContent={cartItems?.length || 0} color="error">
+              <ShoppingCartOutlinedIcon />
+            </Badge>
+          </IconButton>
+        </Stack>
+      </Box>
+      {/* No banner and no search UI */}
 
-              {/* Sort Options */}
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#666' }}>
-                  Sort By
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <Select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    sx={{
-                      backgroundColor: 'white',
-                      borderRadius: '8px',
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#e0e0e0'
-                      }
-                    }}
-                  >
-                    <MenuItem value="newest">Newest First</MenuItem>
-                    <MenuItem value="price-low">Price: Low to High</MenuItem>
-                    <MenuItem value="price-high">Price: High to Low</MenuItem>
-                    <MenuItem value="popular">Most Popular</MenuItem>
-                  </Select>
-                </FormControl>
-              </Box>
+      {/* Right-side Filter / Sort control */}
+      <Box sx={{
+        position: 'fixed',
+        right: { xs: 12, md: 24 },
+        bottom: { xs: 16, md: 'auto' },
+        top: { xs: 'auto', md: 96 },
+        zIndex: 10
+      }}>
+        {selectedCategories.length === 0 ? (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<FilterListIcon />}
+            onClick={() => setFilterDrawerOpen(true)}
+            sx={{
+              bgcolor: '#d4af37',
+              color: '#fff',
+              fontWeight: 700,
+              textTransform: 'none',
+              '&:hover': { bgcolor: '#b8860b' }
+            }}
+          >
+            Filter
+          </Button>
+        ) : (
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 180, bgcolor: '#fff', borderRadius: 1 }}>
+              <InputLabel id="sort-by-label">Sort by</InputLabel>
+              <Select
+                labelId="sort-by-label"
+                label="Sort by"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <MenuItem value={'newest'}>New Arrivals</MenuItem>
+                <MenuItem value={'price-low'}>Price: Low to High</MenuItem>
+                <MenuItem value={'price-high'}>Price: High to Low</MenuItem>
+                <MenuItem value={'best-seller'}>Best Seller</MenuItem>
+                <Divider />
+                <MenuItem value={'gender-men'}>Gender: Men</MenuItem>
+                <MenuItem value={'gender-women'}>Gender: Women</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/')}
+              sx={{ borderColor: '#d4af37', color: '#d4af37', textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
+            >
+              Back to Home
+            </Button>
+          </Stack>
+        )}
+      </Box>
 
-              {/* Apply & Reset */}
-              <Stack spacing={1}>
+      {/* Filter Drawer on the right */}
+      <Drawer anchor="right" open={filterDrawerOpen} onClose={() => setFilterDrawerOpen(false)}>
+        <Box sx={{ width: { xs: 260, sm: 300 }, p: 2 }} role="presentation">
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+            <Typography variant="h6" fontWeight={800}>Filter</Typography>
+            <IconButton onClick={() => setFilterDrawerOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+          <Divider sx={{ mb: 2 }} />
+          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Categories</Typography>
+          <Stack spacing={1}>
+            {orderedCategories().map((cat) => {
+              const count = productsByCategory(cat).length;
+              if (!count) return null;
+              const active = selectedCategories[0] === cat;
+              return (
                 <Button
-                  variant="contained"
-                  onClick={applyFilters}
-                  fullWidth
-                  sx={{
-                    backgroundColor: '#d4af37',
-                    color: 'white',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    '&:hover': {
-                      backgroundColor: '#b8860b'
-                    }
+                  key={cat}
+                  variant={active ? 'contained' : 'outlined'}
+                  onClick={() => {
+                    handleViewMoreCategory(cat);
+                    setFilterDrawerOpen(false);
                   }}
-                >
-                  Apply Filters
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={resetFilters}
-                  fullWidth
-                  size="small"
                   sx={{
+                    justifyContent: 'space-between',
+                    textTransform: 'none',
                     borderColor: '#d4af37',
-                    color: '#d4af37',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    '&:hover': {
-                      borderColor: '#b8860b',
-                      color: '#b8860b'
-                    }
+                    color: active ? '#fff' : '#1a1a1a',
+                    bgcolor: active ? '#d4af37' : 'transparent',
+                    '&:hover': { borderColor: '#b8860b' }
                   }}
                 >
-                  Reset
+                  <span style={{ fontWeight: 700 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                  <Chip size="small" label={count} sx={{ ml: 2 }} />
                 </Button>
-              </Stack>
-            </Paper>
-          </Box>
-        </Grid>
+              );
+            })}
+          </Stack>
+        </Box>
+      </Drawer>
 
-                {/* Right Content - Search, Products */}
-        <Grid item xs={12} md={9}>
-          
-          {/* Search Bar */}
-          <Box sx={{ mb: 4 }}>
-            <form onSubmit={handleSearchSubmit}>
-              <TextField
-                fullWidth
-                placeholder="Search by product name..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: '#666' }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Button
-                        type="submit"
-                        variant="contained"
-                        size="small"
-                        sx={{
-                          backgroundColor: '#d4af37',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: '#b8860b'
-                          }
-                        }}
-                      >
-                        Search
-                      </Button>
-                    </InputAdornment>
-                  )
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'white',
-                    borderRadius: '8px',
-                    '&:hover': {
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#d4af37'
-                      }
-                    },
-                    '&.Mui-focused': {
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#d4af37'
-                      }
-                    }
-                  }
-                }}
-              />
-            </form>
-          </Box>
+      {/* Main Content - No Sidebar */}
+      <Grid container spacing={3}>
+        {/* Content - Products by category */}
+        <Grid item xs={12}>
 
               {/* Filter Summary */}
-        {filterSummary !== 'All products' && (
-          <Box sx={{ mb: 3, p: 2, backgroundColor: '#f8f9fa', borderRadius: 2, border: '1px solid #e9ecef' }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography variant="body2" color="text.secondary">
-                {filterSummary}
-              </Typography>
-              <Button
-                variant="text"
-                onClick={resetFilters}
-                size="small"
-                sx={{ color: '#d4af37', textTransform: 'none' }}
-              >
-                Clear All
-              </Button>
-            </Stack>
-          </Box>
-        )}
+        {/* Hide product count/filter summary per request */}
           
-      {/* Products Grid */}
+      {/* Products Grid by Category or Selected Category */}
             {status === 'loading' ? (
         <Stack alignItems="center" spacing={2} sx={{ py: 8 }}>
           <CircularProgress sx={{ color: '#d4af37' }} />
@@ -347,52 +366,84 @@ const ShopPage = () => {
           <Typography color="text.secondary" textAlign="center">
             Try adjusting your filters or search terms
           </Typography>
-          <Button
-            variant="outlined"
-            onClick={resetFilters}
-            sx={{
-              borderColor: '#d4af37',
-              color: '#d4af37',
-              '&:hover': {
-                borderColor: '#b8860b',
-                color: '#b8860b'
-              }
-            }}
-          >
-            Clear All Filters
-          </Button>
+          <Button variant="outlined" onClick={resetFilters} sx={{ borderColor: '#d4af37', color: '#d4af37', '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}>Clear All Filters</Button>
         </Stack>
       ) : (
-              <Grid container spacing={{ xs: 2, md: 3 }}>
-                {products.map((product) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
-                    <ProductCard product={product} />
+              selectedCategories.length === 0 ? (
+                // Show 4 products per category with 'View More' below
+                <Stack spacing={6}>
+                  {orderedCategories().map((cat) => {
+                    const list = productsByCategory(cat);
+                    if (list.length === 0) return null;
+                    return (
+                      <Box key={cat}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: 2, textAlign: 'center', mb: 2 }}>
+                          {cat.toUpperCase()}
+                        </Typography>
+                        <Grid container spacing={{ xs: 2, md: 3 }}>
+                          {visibleProducts(cat, 4).map((product) => (
+                            <Grid item xs={12} sm={6} md={3} key={product._id}>
+                              <ProductCard product={product} />
+                            </Grid>
+                          ))}
+                        </Grid>
+                        <Stack alignItems="center" sx={{ mt: 2 }}>
+                          <Button
+                            variant="text"
+                            onClick={() => handleViewMoreCategory(cat)}
+                            sx={{ color: '#d4af37', fontWeight: 700, textTransform: 'none', '&:hover': { color: '#b8860b' } }}
+                          >
+                            View More
+                          </Button>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              ) : (
+                // Show only the selected category's products in a grid (apply client-side sort/filter as needed)
+                <Grid container spacing={{ xs: 2, md: 3 }}>
+                  {/* Inline Back to Home for mobile/top visibility */}
+                  <Grid item xs={12} sx={{ display: { xs: 'block', md: 'none' } }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => navigate('/')}
+                      fullWidth
+                      sx={{ borderColor: '#d4af37', color: '#d4af37', textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
+                    >
+                      Back to Home
+                    </Button>
                   </Grid>
-                ))}
-              </Grid>
+                  {getDisplayedProducts().map((product) => (
+                    <Grid item xs={12} sm={6} md={3} key={product._id}>
+                      <ProductCard product={product} />
+                    </Grid>
+                  ))}
+                </Grid>
+              )
       )}
 
-        {/* Pagination */}
-        <Stack alignItems="center" sx={{ mt: 6 }}>
-          <Pagination
-            count={10} 
-            color="primary" 
-            sx={{
-              '& .MuiPaginationItem-root': {
-                color: '#666',
-                '&.Mui-selected': {
-                  backgroundColor: '#d4af37',
-                  color: 'white'
-                },
-                '&:hover': {
-                  backgroundColor: '#fff8e1'
-                }
-              }
-            }}
-          />
-        </Stack>
-        </Grid> {/* Close Right Content Grid */}
+        {/* No pagination; sections handle 'View More' */}
+        </Grid> {/* Close Content Grid */}
       </Grid> {/* Close Main Container Grid */}
+
+      {/* Live Rates Popup */}
+      <Dialog open={ratesOpen} onClose={() => setRatesOpen(false)} maxWidth="sm" fullWidth>
+        <DialogContent sx={{ p: 0, position: 'relative' }}>
+          <IconButton
+            onClick={() => setRatesOpen(false)}
+            sx={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}
+          >
+            <CloseIcon />
+          </IconButton>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Live Gold & Silver Rates</Typography>
+            <Paper elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid #eee' }}>
+              <CompactMetalRatesWidget />
+            </Paper>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 };

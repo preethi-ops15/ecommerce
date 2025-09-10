@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Badge, Button, useMediaQuery, useTheme, Container, Box } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectUserInfo } from '../../user/UserSlice';
@@ -13,6 +13,7 @@ import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import { selectCartItems } from '../../cart/CartSlice';
 import { selectLoggedInUser, logoutAsync } from '../../auth/AuthSlice';
 import { selectWishlistItems } from '../../wishlist/WishlistSlice';
+import { useLoginPopup } from '../../../contexts/LoginPopupContext';
 import TuneIcon from '@mui/icons-material/Tune';
 import { selectProductIsFilterOpen, toggleFilters } from '../../products/ProductSlice';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -22,6 +23,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import InfoIcon from '@mui/icons-material/Info';
 import LoginIcon from '@mui/icons-material/Login';
+import Calculate from '@mui/icons-material/Calculate';
 import CloseIcon from '@mui/icons-material/Close';
 import Drawer from '@mui/material/Drawer';
 import PersonIcon from '@mui/icons-material/Person';
@@ -31,12 +33,27 @@ export const Navbar = ({ isProductList = false }) => {
   const cartItems = useSelector(selectCartItems)
   const loggedInUser = useSelector(selectLoggedInUser)
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useDispatch()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(false);
+  const { openLoginPopup } = useLoginPopup();
 
   const wishlistItems = useSelector(selectWishlistItems)
+  const isHome = location.pathname === '/'
+
+  // Handle scroll effect
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleToggleFilters = () => {
     dispatch(toggleFilters())
@@ -46,41 +63,69 @@ export const Navbar = ({ isProductList = false }) => {
 
   return (
     <AppBar 
-      position="sticky" 
+      position="fixed" 
       sx={{ 
-        backgroundColor: '#1a1a1a',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.1)',
-        borderBottom: '1px solid #f0f0f0',
+        backgroundColor: isScrolled ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.12)',
+        backdropFilter: 'saturate(180%) blur(12px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(12px)',
+        boxShadow: isScrolled ? '0 8px 24px rgba(0,0,0,0.12)' : '0 2px 8px rgba(0,0,0,0.08)',
+        borderBottom: '1px solid rgba(212,175,55,0.35)',
         top: 0,
-        zIndex: 1100
+        zIndex: 1100,
+        transition: 'all 0.3s ease-in-out'
       }}
     >
       <Container maxWidth="xl">
         <Toolbar disableGutters sx={{ minHeight: '70px' }}>
           {isMobile && (
             <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-              <Typography
-                variant="h5"
-                noWrap
+              <Box
                 component="a"
                 href="/"
                 sx={{
-                  fontFamily: 'serif',
-                  fontWeight: 700,
-                  letterSpacing: '.2rem',
-                  color: '#d4af37',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  backgroundColor: '#d4af37',
                   textDecoration: 'none',
-                  fontSize: '1.2rem'
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)'
+                  }
                 }}
               >
-                SILVER JEWELS
-              </Typography>
+                <Typography
+                  sx={{
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '1.2rem',
+                    fontFamily: 'serif'
+                  }}
+                >
+                  SJ
+                </Typography>
+              </Box>
               <IconButton
                 size="large"
                 aria-label="menu"
                 onClick={() => setDrawerOpen(true)}
                 color="inherit"
-                sx={{ color: 'white' }}
+                sx={{ 
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
+                  backgroundColor: isScrolled ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.08)',
+                  border: isScrolled ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.2)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
+                  }
+                }}
               >
                 <MenuIcon />
               </IconButton>
@@ -98,40 +143,72 @@ export const Navbar = ({ isProductList = false }) => {
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2, px: 2 }}>
                   <Button startIcon={<HomeIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { navigate('/'); setDrawerOpen(false); }}>Home</Button>
                   <Button startIcon={<StorefrontIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { navigate('/shop'); setDrawerOpen(false); }}>Shop</Button>
-                  <Button startIcon={<AssignmentIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { navigate('/chit-plans'); setDrawerOpen(false); }}>Chit Plan</Button>
-                  <Button startIcon={<InfoIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { navigate('/about'); setDrawerOpen(false); }}>About</Button>
+                  <Button startIcon={<AssignmentIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { 
+                    setDrawerOpen(false);
+                    const chitPlansElement = document.getElementById('chit-plans');
+                    if (chitPlansElement) {
+                      chitPlansElement.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      navigate('/');
+                      setTimeout(() => {
+                        const element = document.getElementById('chit-plans');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }, 100);
+                    }
+                  }}>Chit Plan</Button>
+                  <Button startIcon={<Calculate />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { 
+                    setDrawerOpen(false);
+                    const calculatorElement = document.getElementById('calculator');
+                    if (calculatorElement) {
+                      calculatorElement.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      navigate('/');
+                      setTimeout(() => {
+                        const element = document.getElementById('calculator');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }, 100);
+                    }
+                  }}>Calculator</Button>
                   
-                  {/* Cart and Wishlist for mobile */}
-                  <Button 
-                    startIcon={<ShoppingCartOutlinedIcon />} 
-                    sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} 
-                    onClick={() => {
-                      if (loggedInUser) {
-                        navigate('/cart');
-                      } else {
-                        sessionStorage.setItem('redirectAfterLogin', '/cart');
-                        navigate('/login');
-                      }
-                      setDrawerOpen(false);
-                    }}
-                  >
-                    Cart ({cartItems?.length || 0})
-                  </Button>
-                  <Button 
-                    startIcon={<FavoriteBorderIcon />} 
-                    sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} 
-                    onClick={() => {
-                      if (loggedInUser) {
-                        navigate('/wishlist');
-                      } else {
-                        sessionStorage.setItem('redirectAfterLogin', '/wishlist');
-                        navigate('/login');
-                      }
-                      setDrawerOpen(false);
-                    }}
-                  >
-                    Wishlist ({wishlistItems?.length || 0})
-                  </Button>
+                  {/* Cart and Wishlist for mobile - hidden on home */}
+                  {!isHome && (
+                    <>
+                      <Button 
+                        startIcon={<ShoppingCartOutlinedIcon />} 
+                        sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} 
+                        onClick={() => {
+                          if (loggedInUser) {
+                            navigate('/cart');
+                          } else {
+                            sessionStorage.setItem('redirectAfterLogin', '/cart');
+                            openLoginPopup();
+                          }
+                          setDrawerOpen(false);
+                        }}
+                      >
+                        Cart ({cartItems?.length || 0})
+                      </Button>
+                      <Button 
+                        startIcon={<FavoriteBorderIcon />} 
+                        sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} 
+                        onClick={() => {
+                          if (loggedInUser) {
+                            navigate('/wishlist');
+                          } else {
+                            sessionStorage.setItem('redirectAfterLogin', '/wishlist');
+                            openLoginPopup();
+                          }
+                          setDrawerOpen(false);
+                        }}
+                      >
+                        Wishlist ({wishlistItems?.length || 0})
+                      </Button>
+                    </>
+                  )}
                   
                   {/* User actions */}
                   {loggedInUser ? (
@@ -143,7 +220,7 @@ export const Navbar = ({ isProductList = false }) => {
                       <Button startIcon={<LogoutIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { dispatch(logoutAsync()); setDrawerOpen(false); }}>Logout</Button>
                     </>
                   ) : (
-                    <Button startIcon={<LoginIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { navigate('/login'); setDrawerOpen(false); }}>Login</Button>
+                    <Button startIcon={<LoginIcon />} sx={{ color: '#fff', justifyContent: 'flex-start', fontWeight: 600, fontSize: '1.1rem', textTransform: 'none' }} onClick={() => { openLoginPopup(); setDrawerOpen(false); }}>Login</Button>
                   )}
                 </Box>
               </Drawer>
@@ -151,24 +228,51 @@ export const Navbar = ({ isProductList = false }) => {
           )}
 
           {/* Logo - shown on all screens */}
-          <Typography
-            variant="h5"
-            noWrap
+          <Box
             component="a"
             href="/"
             sx={{
               mr: 2,
-              display: { xs: 'none', md: 'flex' },
-              fontFamily: 'serif',
-              fontWeight: 700,
-              letterSpacing: '.2rem',
-              color: '#d4af37',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: { xs: 40, md: 50 },
+              height: { xs: 40, md: 50 },
+              borderRadius: '50%',
+              backgroundColor: '#d4af37',
               textDecoration: 'none',
-              fontSize: '1.5rem'
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.1)',
+                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.3)'
+              }
             }}
           >
-            SILVER JEWELS
-          </Typography>
+            {/* Logo Icon - Replace with your actual logo image */}
+            <Typography
+              sx={{
+                color: 'white',
+                fontWeight: 700,
+                fontSize: { xs: '1.2rem', md: '1.5rem' },
+                fontFamily: 'serif'
+              }}
+            >
+              SJ
+            </Typography>
+            {/* 
+              To add your logo image, replace the Typography above with:
+              <img 
+                src="/path-to-your-logo.png" 
+                alt="Silver Jewels Logo" 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'contain',
+                  borderRadius: '50%'
+                }} 
+              />
+            */}
+          </Box>
 
           {/* Desktop menu items */}
           {!isMobile && (
@@ -177,14 +281,20 @@ export const Navbar = ({ isProductList = false }) => {
                 onClick={() => navigate('/')}
                 sx={{ 
                   my: 2, 
-                  color: 'white',
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
                   display: 'block',
                   fontWeight: 500,
                   fontSize: '1rem',
                   textTransform: 'none',
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    backgroundColor: 'rgba(212,175,55,0.1)',
-                    color: '#d4af37'
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                   }
                 }}
               >
@@ -194,52 +304,93 @@ export const Navbar = ({ isProductList = false }) => {
                 onClick={() => navigate('/shop')}
                 sx={{ 
                   my: 2, 
-                  color: 'white',
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
                   display: 'block',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontSize: '1rem',
                   textTransform: 'none',
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
                   '&:hover': {
-                    backgroundColor: 'rgba(212,175,55,0.1)',
-                    color: '#d4af37'
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                   }
                 }}
               >
                 Shop
               </Button>
               <Button
-                onClick={() => navigate('/chit-plans')}
+                onClick={() => {
+                  const chitPlansElement = document.getElementById('chit-plans');
+                  if (chitPlansElement) {
+                    chitPlansElement.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    navigate('/');
+                    setTimeout(() => {
+                      const element = document.getElementById('chit-plans');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
+                  }
+                }}
                 sx={{ 
                   my: 2, 
-                  color: 'white',
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
                   display: 'block',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontSize: '1rem',
                   textTransform: 'none',
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
                   '&:hover': {
-                    backgroundColor: 'rgba(212,175,55,0.1)',
-                    color: '#d4af37'
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                   }
                 }}
               >
                 Chit Plans
               </Button>
               <Button
-                onClick={() => navigate('/about')}
+                onClick={() => {
+                  const calculatorElement = document.getElementById('calculator');
+                  if (calculatorElement) {
+                    calculatorElement.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    navigate('/');
+                    setTimeout(() => {
+                      const element = document.getElementById('calculator');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
+                  }
+                }}
                 sx={{ 
                   my: 2, 
-                  color: 'white',
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
                   display: 'block',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontSize: '1rem',
                   textTransform: 'none',
+                  borderRadius: 2,
+                  px: 2,
+                  py: 1,
                   '&:hover': {
-                    backgroundColor: 'rgba(212,175,55,0.1)',
-                    color: '#d4af37'
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                   }
                 }}
               >
-                About
+                Calculator
               </Button>
             </Box>
           )}
@@ -251,11 +402,15 @@ export const Navbar = ({ isProductList = false }) => {
               <IconButton
                 onClick={handleToggleFilters}
                 sx={{
-                  color: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
+                  backgroundColor: isScrolled ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.08)',
+                  border: isScrolled ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.2)',
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    backgroundColor: 'rgba(212,175,55,0.2)',
-                    color: '#d4af37'
+                    backgroundColor: '#d4af37',
+                    color: 'white',
+                    transform: 'scale(1.05)',
+                    boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                   }
                 }}
               >
@@ -263,7 +418,8 @@ export const Navbar = ({ isProductList = false }) => {
               </IconButton>
             )}
 
-            {/* Wishlist - Hidden on mobile */}
+            {/* Wishlist - Hidden on mobile and hidden on home */}
+            {!isHome && (
             <Box sx={{ display: { xs: 'none', md: 'block' } }}>
               <Tooltip title="Wishlist">
                 <IconButton
@@ -273,15 +429,19 @@ export const Navbar = ({ isProductList = false }) => {
                     } else {
                       // Store the intended destination and redirect to login
                       sessionStorage.setItem('redirectAfterLogin', '/wishlist');
-                      navigate('/login');
+                      openLoginPopup();
                     }
                   }}
                   sx={{
-                    color: 'white',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    color: isScrolled ? '#1a1a1a' : '#f5f5f5',
+                    backgroundColor: isScrolled ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.08)',
+                    border: isScrolled ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.2)',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      backgroundColor: 'rgba(212,175,55,0.2)',
-                      color: '#d4af37'
+                      backgroundColor: '#d4af37',
+                      color: 'white',
+                      transform: 'scale(1.05)',
+                      boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                     }
                   }}
                 >
@@ -291,8 +451,10 @@ export const Navbar = ({ isProductList = false }) => {
                 </IconButton>
               </Tooltip>
             </Box>
+            )}
 
-            {/* Cart - Hidden on mobile */}
+            {/* Cart - Hidden on mobile and hidden on home */}
+            {!isHome && (
             <Box sx={{ display: { xs: 'none', md: 'block' } }}>
               <Tooltip title="Cart">
                 <IconButton
@@ -302,15 +464,19 @@ export const Navbar = ({ isProductList = false }) => {
                     } else {
                       // Store the intended destination and redirect to login
                       sessionStorage.setItem('redirectAfterLogin', '/cart');
-                      navigate('/login');
+                      openLoginPopup();
                     }
                   }}
                   sx={{
-                    color: 'white',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    color: isScrolled ? '#1a1a1a' : '#f5f5f5',
+                    backgroundColor: isScrolled ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.08)',
+                    border: isScrolled ? '1px solid rgba(212,175,55,0.3)' : '1px solid rgba(255,255,255,0.2)',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      backgroundColor: 'rgba(212,175,55,0.2)',
-                      color: '#d4af37'
+                      backgroundColor: '#d4af37',
+                      color: 'white',
+                      transform: 'scale(1.05)',
+                      boxShadow: '0 4px 12px rgba(212,175,55,0.3)'
                     }
                   }}
                 >
@@ -320,7 +486,7 @@ export const Navbar = ({ isProductList = false }) => {
                 </IconButton>
               </Tooltip>
             </Box>
-
+            )}
             {/* User menu - Hidden on mobile */}
             <Box sx={{ display: { xs: 'none', md: 'block' } }}>
               {loggedInUser ? (
@@ -330,7 +496,7 @@ export const Navbar = ({ isProductList = false }) => {
                       <Avatar 
                         sx={{ 
                           bgcolor: '#d4af37',
-                          color: '#1a1a1a',
+                          color: isScrolled ? '#1a1a1a' : '#666666',
                           fontWeight: 600,
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
@@ -369,18 +535,21 @@ export const Navbar = ({ isProductList = false }) => {
                 </Box>
               ) : (
                 <Button
-                  onClick={() => navigate('/login')}
+                  onClick={() => openLoginPopup()}
                   sx={{
                     color: 'white',
-                    backgroundColor: 'rgba(212,175,55,0.2)',
+                    backgroundColor: '#d4af37',
                     border: '1px solid #d4af37',
                     fontWeight: 600,
                     textTransform: 'none',
                     px: 3,
                     py: 1,
+                    borderRadius: 2,
+                    boxShadow: '0 2px 8px rgba(212,175,55,0.3)',
                     '&:hover': {
-                      backgroundColor: '#d4af37',
-                      color: '#1a1a1a'
+                      backgroundColor: '#b8860b',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 4px 12px rgba(212,175,55,0.4)'
                     }
                   }}
                 >

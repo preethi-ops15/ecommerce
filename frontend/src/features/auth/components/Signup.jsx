@@ -59,19 +59,16 @@ export const Signup = () => {
   }
 
   return (
-    <Box sx={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <Box
-        sx={{
-          position: 'absolute',
-          width: '100vw',
-          height: '100vh',
-          top: 0,
-          left: 0,
-          zIndex: 0,
-          background: 'url(/auth-jewelry-bg.png) center/cover no-repeat, #fff',
-          // Remove blur and opacity
-        }}
-      />
+    <Box sx={{ 
+      position: 'relative', 
+      width: '100vw', 
+      height: '100vh', 
+      overflow: 'hidden',
+      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
       <Stack
         width={'100vw'}
         height={'100vh'}
@@ -80,20 +77,37 @@ export const Signup = () => {
         sx={{ position: 'relative', zIndex: 1 }}
       >
         <Stack
-          spacing={2}
+          spacing={3}
           component={Paper}
-          elevation={3}
+          elevation={8}
           sx={{
-            borderRadius: 3,
-            p: { xs: 2, sm: 4 },
-            width: { xs: '95vw', sm: '28rem' },
+            borderRadius: 4,
+            p: { xs: 3, sm: 4 },
+            width: { xs: '95vw', sm: '400px' },
             maxWidth: '95vw',
             boxSizing: 'border-box',
             alignItems: 'center',
-            backdropFilter: 'blur(16px)',
-            background: 'rgba(255,255,255,0.85)',
-            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
-            border: '1px solid rgba(255,255,255,0.18)',
+            backdropFilter: 'blur(20px)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.2)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: 'linear-gradient(90deg, #d4af37, #f4d03f, #d4af37)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 2s ease-in-out infinite',
+            },
+            '@keyframes shimmer': {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' }
+            }
           }}
         >
           <Stack flexDirection={'row'} justifyContent={'center'} alignItems={'center'}>
@@ -102,27 +116,143 @@ export const Signup = () => {
               <Typography color={'GrayText'} variant='body2' textAlign="center">- Pure Silver. Pure Brilliance.</Typography>
             </Stack>
           </Stack>
-          <Stack mt={2} spacing={2} width={'100%'} component={'form'} noValidate onSubmit={handleSubmit(handleSignup)}>
-            <MotionConfig whileHover={{ y: -5 }}>
-              <motion.div>
-                <TextField fullWidth {...register("name", { required: "Username is required" })} placeholder='Username' InputProps={{ style: { color: '#222' } }} InputLabelProps={{ style: { color: '#222' } }}/>
-                {errors.name && <FormHelperText error>{errors.name.message}</FormHelperText>}
-              </motion.div>
-              <motion.div>
-                <TextField fullWidth {...register("email", { required: "Email is required", pattern: { value: /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/g, message: "Enter a valid email" } })} placeholder='Email' InputProps={{ style: { color: '#222' } }} InputLabelProps={{ style: { color: '#222' } }}/>
-                {errors.email && <FormHelperText error>{errors.email.message}</FormHelperText>}
-              </motion.div>
-              <motion.div>
-                <TextField type='password' fullWidth {...register("password", { required: "Password is required", pattern: { value: /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/gm, message: `at least 8 characters, must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number, Can contain special characters` } })} placeholder='Password' InputProps={{ style: { color: '#222' } }} InputLabelProps={{ style: { color: '#222' } }}/>
-                {errors.password && <FormHelperText error>{errors.password.message}</FormHelperText>}
-              </motion.div>
-              <motion.div>
-                <TextField type='password' fullWidth {...register("confirmPassword", { required: "Confirm Password is required", validate: (value, fromValues) => value === fromValues.password || "Passwords doesn't match" })} placeholder='Confirm Password' InputProps={{ style: { color: '#222' } }} InputLabelProps={{ style: { color: '#222' } }}/>
-                {errors.confirmPassword && <FormHelperText error>{errors.confirmPassword.message}</FormHelperText>}
-              </motion.div>
-            </MotionConfig>
-            <motion.div whileHover={{ scale: 1.020 }} whileTap={{ scale: 1 }}>
-              <LoadingButton sx={{ height: '2.5rem' }} fullWidth loading={status === 'pending'} type='submit' variant='contained'>Signup</LoadingButton>
+          <Stack mt={2} spacing={3} width={'100%'} component={'form'} noValidate onSubmit={handleSubmit(handleSignup)}>
+            <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+              <TextField 
+                fullWidth 
+                {...register("name", { required: "Username is required" })} 
+                placeholder='Username' 
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: 'rgba(255,255,255,1)',
+                    }
+                  }
+                }}
+                InputProps={{ style: { color: '#333', fontSize: '0.95rem' } }} 
+                InputLabelProps={{ style: { color: '#666' } }}
+              />
+              {errors.name && <FormHelperText sx={{ mt: 1 }} error>{errors.name.message}</FormHelperText>}
+            </motion.div>
+            <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+              <TextField 
+                fullWidth 
+                {...register("email", { 
+                  required: "Email is required", 
+                  pattern: { 
+                    value: /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/g, 
+                    message: "Enter a valid email" 
+                  } 
+                })} 
+                placeholder='Email' 
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: 'rgba(255,255,255,1)',
+                    }
+                  }
+                }}
+                InputProps={{ style: { color: '#333', fontSize: '0.95rem' } }} 
+                InputLabelProps={{ style: { color: '#666' } }}
+              />
+              {errors.email && <FormHelperText sx={{ mt: 1 }} error>{errors.email.message}</FormHelperText>}
+            </motion.div>
+            <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+              <TextField 
+                type='password' 
+                fullWidth 
+                {...register("password", { 
+                  required: "Password is required", 
+                  pattern: { 
+                    value: /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/gm, 
+                    message: `at least 8 characters, must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number, Can contain special characters` 
+                  } 
+                })} 
+                placeholder='Password' 
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: 'rgba(255,255,255,1)',
+                    }
+                  }
+                }}
+                InputProps={{ style: { color: '#333', fontSize: '0.95rem' } }} 
+                InputLabelProps={{ style: { color: '#666' } }}
+              />
+              {errors.password && <FormHelperText sx={{ mt: 1 }} error>{errors.password.message}</FormHelperText>}
+            </motion.div>
+            <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+              <TextField 
+                type='password' 
+                fullWidth 
+                {...register("confirmPassword", { 
+                  required: "Confirm Password is required", 
+                  validate: (value, fromValues) => value === fromValues.password || "Passwords doesn't match" 
+                })} 
+                placeholder='Confirm Password' 
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    backgroundColor: 'rgba(255,255,255,0.8)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.9)',
+                    },
+                    '&.Mui-focused': {
+                      backgroundColor: 'rgba(255,255,255,1)',
+                    }
+                  }
+                }}
+                InputProps={{ style: { color: '#333', fontSize: '0.95rem' } }} 
+                InputLabelProps={{ style: { color: '#666' } }}
+              />
+              {errors.confirmPassword && <FormHelperText sx={{ mt: 1 }} error>{errors.confirmPassword.message}</FormHelperText>}
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.2 }}>
+              <LoadingButton 
+                sx={{ 
+                  height: '48px',
+                  borderRadius: 2,
+                  background: 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
+                  color: '#1a1a1a',
+                  fontWeight: 600,
+                  fontSize: '1rem',
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(212,175,55,0.3)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #b8860b 0%, #d4af37 100%)',
+                    boxShadow: '0 6px 16px rgba(212,175,55,0.4)',
+                  },
+                  '&:disabled': {
+                    background: 'rgba(212,175,55,0.3)',
+                    color: 'rgba(26,26,26,0.5)',
+                  }
+                }} 
+                fullWidth 
+                loading={status === 'pending'} 
+                type='submit' 
+                variant='contained'
+              >
+                Signup
+              </LoadingButton>
             </motion.div>
             <Stack flexDirection={'row'} justifyContent={'space-between'} alignItems={'center'} flexWrap={'wrap-reverse'}>
               <MotionConfig whileHover={{ x: 2 }} whileTap={{ scale: 1.050 }}>

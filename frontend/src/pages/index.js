@@ -1,5 +1,3 @@
-import { AddProductPage } from "./AddProductPage";
-import { AdminOrdersPage } from "./AdminOrdersPage";
 import { CartPage } from "./CartPage";
 import { CheckoutPage } from "./CheckoutPage";
 import { ForgotPasswordPage } from "./ForgotPasswordPage";
@@ -8,7 +6,6 @@ import { LoginPage } from "./LoginPage";
 import { OrderSuccessPage } from "./OrderSuccessPage";
 import { OtpVerificationPage } from "./OtpVerificationPage";
 import { ProductDetailsPage } from "./ProductDetailsPage";
-import { ProductUpdatePage } from "./ProductUpdatePage";
 import { ResetPasswordPage } from "./ResetPasswordPage";
 import { SignupPage } from "./SignupPage";
 import { UserOrdersPage } from "./UserOrdersPage";
@@ -19,7 +16,6 @@ import { AboutPage } from "./AboutPage";
 import { ContactPage } from "./ContactPage";
 import ShopPage from '../features/shop/ShopPage';
 import StoreDetailsPage from './StoreDetailsPage';
-import { AdminQueriesPage } from './AdminQueriesPage';
 import UserDashboardPage from './UserDashboardPage';
 import { AdminPage } from './AdminPage';
 
@@ -35,16 +31,12 @@ export {
     CheckoutPage,
     OrderSuccessPage,
     UserOrdersPage,
-    ProductUpdatePage,
-    AddProductPage,
-    AdminOrdersPage,
     WishlistPage,
     OtpVerificationPage,
     ShopPage,
     AboutPage,
     ContactPage,
     StoreDetailsPage,
-    AdminQueriesPage,
     UserDashboardPage,
     AdminPage
 }

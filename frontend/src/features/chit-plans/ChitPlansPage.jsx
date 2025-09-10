@@ -5,6 +5,7 @@ import { selectLoggedInUser } from '../auth/AuthSlice';
 import ChitPlanSelection from './components/ChitPlanSelection';
 import ChitPlanPayment from './components/ChitPlanPayment';
 import ChitPlanSummary from './components/ChitPlanSummary';
+import { useLoginPopup } from '../../contexts/LoginPopupContext';
 
 const ChitPlansPage = () => {
   const navigate = useNavigate();
@@ -12,11 +13,15 @@ const ChitPlansPage = () => {
   const user = useSelector(selectLoggedInUser);
   const isPaymentPage = location.pathname.includes('payment');
   const isSummaryPage = location.pathname.includes('summary');
+  const { openLoginPopup } = useLoginPopup();
 
   // Check if user is logged in for payment pages
   useEffect(() => {
     if (isPaymentPage && !user) {
-      navigate('/login?redirect=/chit-plans/payment' + location.search);
+      // Stay on payment page and open login popup; set redirect to current payment URL
+      const paymentRedirect = '/chit-plans/payment' + location.search;
+      sessionStorage.setItem('redirectAfterLogin', paymentRedirect);
+      openLoginPopup();
       return;
     }
     

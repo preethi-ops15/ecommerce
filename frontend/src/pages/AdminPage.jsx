@@ -34,8 +34,8 @@ import { AdminProducts } from '../features/admin/components/AdminProducts';
 import { AdminOrders } from '../features/admin/components/AdminOrders';
 import { AdminCustomers } from '../features/admin/components/AdminCustomers';
 import { CustomerQueriesTable } from '../features/admin/components/CustomerQueriesTable';
-import { AddProductPage } from './AddProductPage';
-import { ProductUpdatePage } from './ProductUpdatePage';
+import { AddProduct } from '../features/admin/components/AddProduct';
+import { ProductUpdate } from '../features/admin/components/ProductUpdate';
 
 const drawerWidth = 240;
 
@@ -90,11 +90,11 @@ export const AdminPage = () => {
   const renderComponent = () => {
     // Check if we're on a specific route
     if (location.pathname === '/admin/add-product') {
-      return <AddProductPage />;
+      return <AddProduct />;
     }
     
     if (location.pathname.startsWith('/admin/product-update/')) {
-      return <ProductUpdatePage />;
+      return <ProductUpdate />;
     }
 
     // Default sidebar navigation

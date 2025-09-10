@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Box, 
@@ -35,6 +36,7 @@ const BenefitsCalculator = () => {
   const [animateResults, setAnimateResults] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -271,6 +273,11 @@ const BenefitsCalculator = () => {
                       }
                     }}
                     endIcon={<ArrowForward />}
+                    onClick={() => {
+                      const mapping = { 1000: 1, 2500: 2, 5000: 3 };
+                      const pid = mapping[selectedPlan] || 2;
+                      navigate(`/chit-plans/payment?plan=${pid}`);
+                    }}
                   >
                     Start This Plan
                   </Button>

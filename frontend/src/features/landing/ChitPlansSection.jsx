@@ -164,7 +164,7 @@ const ChitPlansSection = () => {
                       }
                     }
                   }}
-                  onClick={() => navigate('/chit-plans')}
+                  onClick={() => navigate(`/chit-plans/payment?plan=${plan.id}`)}
                 >
                   {/* Popular Badge */}
                   {plan.popular && (
@@ -327,7 +327,7 @@ const ChitPlansSection = () => {
                       size={isMobile ? "medium" : "large"}
                       fullWidth
                       endIcon={<ArrowForwardIcon />}
-                      onClick={() => navigate('/chit-plan')}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/chit-plans/payment?plan=${plan.id}`); }}
                       sx={{
                         borderRadius: 2,
                         textTransform: 'none',
@@ -361,29 +361,7 @@ const ChitPlansSection = () => {
           ))}
         </Grid>
 
-        {/* View All Plans Button */}
-        <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate('/chit-plans')}
-            sx={{
-              px: 6,
-              py: 1.5,
-              fontSize: '1.1rem',
-              textTransform: 'none',
-              borderRadius: 2,
-              background: 'linear-gradient(45deg, #1976d2 30%, #42a5f5 90%)',
-              boxShadow: '0 4px 8px 2px rgba(25, 118, 210, 0.3)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #1565c0 30%, #1976d2 90%)',
-                boxShadow: '0 6px 12px 2px rgba(25, 118, 210, 0.4)',
-              }
-            }}
-          >
-            View All Plans
-          </Button>
-        </Box>
+        {/* View All Plans button removed as requested */}
 
         {/* Additional Benefits */}
         <motion.div

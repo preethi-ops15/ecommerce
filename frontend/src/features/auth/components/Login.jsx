@@ -50,8 +50,8 @@ export const Login = () => {
 
   // handles login status and dispatches reset actions to relevant states in cleanup
   useEffect(()=>{
+    // Avoid duplicate success toasts; LoginPopup handles success notification
     if(status==='fullfilled' && loggedInUser?.isVerified===true){
-      toast.success(`Login successful`)
       reset()
     }
     return ()=>{

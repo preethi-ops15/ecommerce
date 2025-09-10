@@ -11,8 +11,8 @@ export const HomePage = () => {
   return (
     <>
       <LandingSection />
-      <ChitPlansSection />
       <BenefitsCalculator />
+      <ChitPlansSection />
       <FeaturedProductsSection />
       <ProductShowcaseSection />
       <TestimonialsSection />

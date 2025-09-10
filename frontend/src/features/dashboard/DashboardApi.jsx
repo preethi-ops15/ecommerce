@@ -97,7 +97,16 @@ export const getUserOrders = async () => {
       throw new Error('User ID not found');
     }
     const response = await axios.get(`/orders/user/${userId}`);
-    return response.data;
+    const orders = Array.isArray(response.data) ? response.data : (response.data?.orders || []);
+    // Normalize to UI expected shape
+    return orders.map((o) => ({
+      _id: o._id,
+      // backend uses 'item' for line items and 'total' for total amount
+      items: o.items || o.item || [],
+      totalAmount: typeof o.totalAmount === 'number' ? o.totalAmount : o.total,
+      status: o.status || 'Pending',
+      createdAt: o.createdAt,
+    }));
   } catch (error) {
     // Return mock data if API fails
     return [

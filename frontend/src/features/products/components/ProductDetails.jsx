@@ -26,7 +26,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Badge
 } from '@mui/material';
 import { 
   clearSelectedProduct, 
@@ -64,7 +65,7 @@ import { loadingAnimation } from '../../../assets';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Navigation, Thumbs, Autoplay } from 'swiper/modules';
 import { getImageUrl } from '../../../utils/imageUtils';
-import {
+import { 
   FavoriteBorder,
   Favorite,
   ShoppingCart,
@@ -80,8 +81,10 @@ import {
   Security,
   Verified,
   Close as CloseIcon,
-  ArrowBack
+  ArrowBack,
+  ShoppingCartOutlined
 } from '@mui/icons-material';
+import { useLoginPopup } from '../../../contexts/LoginPopupContext';
 
 import 'swiper/css';
 import 'swiper/css/free-mode';
@@ -109,6 +112,7 @@ export const ProductDetails = () => {
   const wishlistItems = useSelector(selectWishlistItems);
   const isProductAlreadyInCart = cartItems?.some((item) => item?.product?._id === id) || false;
   const isProductAlreadyinWishlist = wishlistItems?.some((item) => item?.product?._id === id) || false;
+  const { openLoginPopup } = useLoginPopup();
 
   const productFetchStatus = useSelector(selectProductFetchStatus);
   const reviewFetchStatus = useSelector(selectReviewFetchStatus);
@@ -400,21 +404,41 @@ export const ProductDetails = () => {
 
   return (
     <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      {/* Back Button */}
+      {/* Minimal Header: Back to Shop (left), Wishlist/Cart (right) */}
       <Container maxWidth="lg" sx={{ py: 2 }}>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => navigate('/shop')}
-          sx={{
-            color: '#666',
-            textTransform: 'none',
-            '&:hover': {
-              backgroundColor: '#f5f5f5'
-            }
-          }}
-        >
-          Back to Shop
-        </Button>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => navigate('/shop')}
+            sx={{ color: '#666', textTransform: 'none', '&:hover': { backgroundColor: '#f5f5f5' } }}
+          >
+            Back to Shop
+          </Button>
+          <Stack direction="row" spacing={1}>
+            <IconButton
+              onClick={() => {
+                if (loggedInUser) { navigate('/wishlist'); }
+                else { sessionStorage.setItem('redirectAfterLogin', '/wishlist'); openLoginPopup(); }
+              }}
+              sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+            >
+              <Badge badgeContent={wishlistItems?.length || 0} color="error">
+                <FavoriteBorder />
+              </Badge>
+            </IconButton>
+            <IconButton
+              onClick={() => {
+                if (loggedInUser) { navigate('/cart'); }
+                else { sessionStorage.setItem('redirectAfterLogin', '/cart'); openLoginPopup(); }
+              }}
+              sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+            >
+              <Badge badgeContent={cartItems?.length || 0} color="error">
+                <ShoppingCartOutlined />
+              </Badge>
+            </IconButton>
+          </Stack>
+        </Stack>
       </Container>
 
       {product ? (

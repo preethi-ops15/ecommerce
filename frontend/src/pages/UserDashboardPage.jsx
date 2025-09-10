@@ -1,45 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Typography,
-  Paper,
-  Button,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Avatar,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Card,
-  CardContent,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Tabs,
-  Tab,
-  Stack
+import { useNavigate } from 'react-router-dom';
+import { 
+  Box, Container, Grid, Typography, Paper, Button, List, ListItem, 
+  ListItemIcon, ListItemText, Divider, Avatar, IconButton, useTheme, 
+  useMediaQuery, Card, CardContent, Chip, Table, TableBody, TableCell, 
+  TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, 
+  DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, 
+  Alert, Snackbar, CircularProgress, Tabs, Tab, Stack 
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Person,
   ShoppingBag,
@@ -57,7 +26,6 @@ import {
   CheckCircle
 } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { selectLoggedInUser, logoutAsync } from '../features/auth/AuthSlice';
 import { selectCartItems } from '../features/cart/CartSlice';
 import { selectWishlistItems } from '../features/wishlist/WishlistSlice';
@@ -907,7 +875,7 @@ const UserDashboardPage = () => {
           </Typography>
           <Button
             variant="contained"
-            onClick={() => navigate('/chit-plans')}
+            onClick={() => navigate('/#chit-plans')}
             sx={{
               backgroundColor: '#d32f2f',
               color: 'white',
@@ -997,34 +965,42 @@ const UserDashboardPage = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 }, px: { xs: 1, md: 2 } }}>
-      {/* Mobile Header */}
-      {isMobile && (
-        <Box sx={{ mb: 3, display: { xs: 'block', md: 'none' } }}>
-          <Paper sx={{ p: 2, borderRadius: 2, backgroundColor: 'white' }}>
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Avatar
-                sx={{
-                  bgcolor: '#d32f2f',
-                  color: 'white',
-                  width: 48,
-                  height: 48
-                }}
-              >
-                {loggedInUser?.name?.charAt(0)?.toUpperCase() || 'D'}
-              </Avatar>
-              <Box sx={{ flexGrow: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Hello,
-                </Typography>
-                <Typography variant="h6" fontWeight={700} sx={{ color: '#1a1a1a' }}>
-                  {loggedInUser?.name || 'DEV'}
-                </Typography>
-              </Box>
-            </Stack>
-          </Paper>
-        </Box>
-      )}
+    <Container maxWidth="xl" sx={{ py: 2 }}>
+      {/* Back to Home Button */}
+      <Button 
+        variant="outlined" 
+        onClick={() => navigate('/')}
+        startIcon={<ArrowBackIcon />}
+        sx={{ mb: 3, textTransform: 'none' }}
+      >
+        Back to Home
+      </Button>
+      
+      {/* Mobile User Greeting */}
+      <Box sx={{ display: { xs: 'block', md: 'none' }, mb: 3 }}>
+        <Paper sx={{ p: 2, borderRadius: 2, backgroundColor: 'white' }}>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Avatar
+              sx={{
+                bgcolor: '#d32f2f',
+                color: 'white',
+                width: 48,
+                height: 48
+              }}
+            >
+              {loggedInUser?.name?.charAt(0)?.toUpperCase() || 'D'}
+            </Avatar>
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                Hello,
+              </Typography>
+              <Typography variant="h6" fontWeight={700} sx={{ color: '#1a1a1a' }}>
+                {loggedInUser?.name || 'DEV'}
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+      </Box>
 
       <Grid container spacing={{ xs: 2, md: 3 }}>
         {/* Left Sidebar - Hidden on mobile, shown on desktop */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
   Container,
   Typography,
@@ -25,6 +25,8 @@ import {
   Card,
   CardContent,
   Grid,
+  Stack,
+  
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -32,13 +34,9 @@ import dayjs from 'dayjs';
 import { styled } from '@mui/material/styles';
 import { selectLoggedInUser } from '../../auth/AuthSlice';
 import { axiosi } from '../../../config/axios';
+ 
 
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  borderRadius: theme.shape.borderRadius * 2,
-  boxShadow: theme.shadows[3],
-  marginBottom: theme.spacing(4),
-}));
+ 
 
 const PaymentSection = styled(Box)(({ theme }) => ({
   marginTop: theme.spacing(4),
@@ -53,7 +51,6 @@ const steps = ['Plan Details', 'Payment Method', 'Payment Gateway', 'Confirmatio
 const ChitPlanPayment = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const user = useSelector(selectLoggedInUser);
   
   const [activeStep, setActiveStep] = useState(0);
@@ -64,6 +61,7 @@ const ChitPlanPayment = () => {
   const [error, setError] = useState('');
   const [plan, setPlan] = useState(null);
   const [paymentOrder, setPaymentOrder] = useState(null);
+  // Removed Live Rates popup for a cleaner payment experience
 
   useEffect(() => {
     // Redirect if no plan selected
@@ -386,75 +384,118 @@ const ChitPlanPayment = () => {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom align="center">
-        Complete Your Chit Plan Enrollment
-      </Typography>
-      
-      <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-        {steps.map((label) => (
-          <Step key={label}>
-            <StepLabel>{label}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
-
-      <StyledPaper>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-
-        {getStepContent(activeStep)}
-
-        {/* Terms and Conditions Checkbox - Always Visible */}
-        <Box sx={{ mt: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
-          <FormControlLabel
-            control={
-              <Checkbox 
-                checked={acceptedTerms} 
-                onChange={(e) => setAcceptedTerms(e.target.checked)}
-                color="primary"
-              />
-            }
-            label={
-              <Typography variant="body2">
-                I agree to the{' '}
-                <Typography 
-                  component="span" 
-                  variant="body2" 
-                  color="primary" 
-                  sx={{ textDecoration: 'underline', cursor: 'pointer' }}
-                  onClick={() => window.open('/terms-and-conditions', '_blank')}
-                >
-                  Terms and Conditions
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      {/* Back to Home link at the top (replaces navbar) */}
+      <Button size="small" onClick={() => navigate('/')} sx={{ mb: 2, textTransform: 'none' }}>
+        ← Back to Home
+      </Button>
+      <Grid container spacing={4}>
+        {/* Left: Selected Plan Card styled like Home page */}
+        <Grid item xs={12} md={5}>
+          <Card 
+            sx={{ 
+              position: 'relative',
+              borderRadius: 3,
+              overflow: 'hidden',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              border: '1px solid #e0e0e0'
+            }}
+          >
+            {/* Header like home page card with gradient background and amount */}
+            <Box
+              sx={{
+                height: 200,
+                position: 'relative',
+                background: plan === 1
+                  ? 'linear-gradient(135deg, #2196f3 0%, #1565c0 100%)'
+                  : plan === 2
+                  ? 'linear-gradient(135deg, #ffb300 0%, #ff7043 100%)'
+                  : 'linear-gradient(135deg, #ab47bc 0%, #7e57c2 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white'
+              }}
+            >
+              <Box sx={{ textAlign: 'center' }}>
+                <Typography variant="h3" fontWeight={800} sx={{ mb: 1, color: '#fff' }}>
+                  ₹{planDetails[plan]?.amount.toLocaleString()}
                 </Typography>
-                {' '}and confirm that I have reviewed the plan details. I understand that this is a 12-month commitment and payments will be processed monthly.
-              </Typography>
-            }
-            sx={{ alignItems: 'flex-start' }}
-          />
-        </Box>
+                <Typography variant="body1" sx={{ color: '#fff', fontWeight: 600 }}>per month</Typography>
+              </Box>
+            </Box>
 
-        {activeStep !== steps.length - 1 && activeStep !== 2 && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4 }}>
-            {activeStep !== 0 && (
-              <Button onClick={handleBack} sx={{ mr: 1 }} disabled={loading}>
-                Back
-              </Button>
-            )}
+            {/* Content with plan name and features */}
+            <CardContent sx={{ p: 3 }}>
+              <Stack spacing={1.5} sx={{ mb: 2 }}>
+                <Typography variant="h5" fontWeight={700}>
+                  {planDetails[plan]?.name}
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Duration: {planDetails[plan]?.duration}
+                </Typography>
+              </Stack>
+
+              {planDetails[plan]?.features.map((f, idx) => (
+                <Typography key={idx} variant="body2" sx={{ mb: 0.5 }}>
+                  • {f}
+                </Typography>
+              ))}
+
+              <Box sx={{ my: 2 }}>
+                <Divider />
+              </Box>
+
+              <Stack direction="row" justifyContent="space-between">
+                <Typography fontWeight={700}>Total due today</Typography>
+                <Typography fontWeight={800}>₹{planDetails[plan]?.amount.toLocaleString()}</Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Right: Contact + Payment */}
+        <Grid item xs={12} md={7}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+          )}
+          <Paper sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
+            <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>Contact information</Typography>
+            <TextField
+              label="Email"
+              fullWidth
+              defaultValue={user?.email || ''}
+              sx={{ mb: 3 }}
+            />
+
+            <Typography variant="h6" fontWeight={700} sx={{ mb: 1.5 }}>Payment method</Typography>
+            <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <FormControlLabel value="razorpay" control={<Radio />} label="Card / UPI / Net Banking (via Razorpay)" />
+              <FormControlLabel value="cod" control={<Radio />} label="Cash at Store (not available online)" disabled />
+            </RadioGroup>
+
+            <FormControlLabel
+              control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />}
+              label={
+                <Typography variant="body2">I agree to the Terms and Conditions and confirm a 12-month commitment.</Typography>
+              }
+              sx={{ mt: 2 }}
+            />
+
             <Button
               variant="contained"
-              onClick={handleNext}
+              fullWidth
+              size="large"
               disabled={loading || !acceptedTerms}
-              endIcon={loading ? <CircularProgress size={20} /> : null}
+              onClick={handleRazorpayPayment}
+              sx={{ mt: 3, textTransform: 'none', fontWeight: 700, bgcolor: '#1a1a1a', '&:hover': { bgcolor: '#000' } }}
+              endIcon={loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : null}
             >
-              {activeStep === steps.length - 2 ? 'Complete Payment' : 'Next'}
+              Subscribe
             </Button>
-          </Box>
-        )}
-      </StyledPaper>
+          </Paper>
+        </Grid>
+      </Grid>
     </Container>
   );
 };

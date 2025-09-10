@@ -1,5 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { selectLoggedInUser } from '../auth/AuthSlice';
+import { useLoginPopup } from '../../contexts/LoginPopupContext';
 import {
   Card,
   CardContent,
@@ -16,6 +19,8 @@ import { useProductPriceCalculation } from '../metal-rates';
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
+  const loggedInUser = useSelector(selectLoggedInUser);
+  const { openLoginPopup } = useLoginPopup();
   const { calculatedPrice, loading, error } = useProductPriceCalculation(product);
 
   const formatPrice = (price) => {
@@ -80,6 +85,16 @@ const ProductCard = ({ product }) => {
     return null;
   };
 
+  const goToDetails = () => {
+    const detailsPath = `/product-details/${product._id}`;
+    if (loggedInUser) {
+      navigate(detailsPath);
+    } else {
+      sessionStorage.setItem('redirectAfterLogin', detailsPath);
+      openLoginPopup();
+    }
+  };
+
   return (
     <Card 
       sx={{ 
@@ -97,13 +112,13 @@ const ProductCard = ({ product }) => {
           borderColor: '#d4af37'
         }
       }}
-      onClick={() => navigate(`/product-details/${product._id}`)}
+      onClick={goToDetails}
     >
       {/* Product Image */}
       <Box sx={{ position: 'relative', height: { xs: 200, sm: 240, md: 280 }, backgroundColor: '#fafafa' }}>
         <img
           src={getImageUrl(product.images?.[0]) || '/product-placeholder.jpg'}
-          alt={product.title}
+          alt={'Product image'}
           style={{
             width: '100%',
             height: '100%',
@@ -133,7 +148,7 @@ const ProductCard = ({ product }) => {
         )}
       </Box>
       
-      {/* Product Details */}
+      {/* Product Details (without product name) */}
       <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, md: 2 } }}>
         <Typography 
           variant="caption" 
@@ -146,24 +161,6 @@ const ProductCard = ({ product }) => {
           }}
         >
           {product.brand?.name || 'Premium Silver'}
-        </Typography>
-        
-        <Typography 
-          variant="h6" 
-          fontWeight={600}
-          sx={{ 
-            color: '#1a1a1a',
-            lineHeight: 1.3,
-            fontSize: { xs: '0.9rem', md: '1rem' },
-            mt: 1,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis'
-          }}
-        >
-          {product.title}
         </Typography>
 
         {/* Weight Info */}
@@ -215,7 +212,7 @@ const ProductCard = ({ product }) => {
           variant="contained" 
           onClick={(e) => {
             e.stopPropagation();
-            navigate(`/product-details/${product._id}`);
+            goToDetails();
           }}
           sx={{
             backgroundColor: '#1a1a1a',

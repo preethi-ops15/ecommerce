@@ -136,6 +136,9 @@ const authSlice=createSlice({
                 if(action.payload?._id) {
                     localStorage.setItem('userId', action.payload._id)
                 }
+                // Persist token if provided
+                const token = action.payload?.token || action.payload?.accessToken || action.payload?.jwt;
+                if (token) localStorage.setItem('token', token)
             })
             .addCase(signupAsync.rejected,(state,action)=>{
                 state.signupStatus='rejected'
@@ -152,6 +155,9 @@ const authSlice=createSlice({
                 if(action.payload?._id) {
                     localStorage.setItem('userId', action.payload._id)
                 }
+                // Persist token if provided
+                const token = action.payload?.token || action.payload?.accessToken || action.payload?.jwt;
+                if (token) localStorage.setItem('token', token)
             })
             .addCase(loginAsync.rejected,(state,action)=>{
                 state.loginStatus='rejected'
@@ -168,6 +174,9 @@ const authSlice=createSlice({
                 if(action.payload?._id) {
                     localStorage.setItem('userId', action.payload._id)
                 }
+                // Persist token if provided
+                const token = action.payload?.token || action.payload?.accessToken || action.payload?.jwt;
+                if (token) localStorage.setItem('token', token)
             })
             .addCase(verifyOtpAsync.rejected,(state,action)=>{
                 state.otpVerificationStatus='rejected'
@@ -218,6 +227,7 @@ const authSlice=createSlice({
                 state.loggedInUser=null
                 // Clear userId from localStorage on logout
                 localStorage.removeItem('userId')
+                localStorage.removeItem('token')
             })
             .addCase(logoutAsync.rejected,(state,action)=>{
                 state.status='rejected'
@@ -235,11 +245,16 @@ const authSlice=createSlice({
                 if(action.payload?._id) {
                     localStorage.setItem('userId', action.payload._id)
                 }
+                // Persist token if provided
+                const token = action.payload?.token || action.payload?.accessToken || action.payload?.jwt;
+                if (token) localStorage.setItem('token', token)
             })
             .addCase(checkAuthAsync.rejected,(state,action)=>{
                 state.status='rejected'
                 state.errors=action.error
                 state.isAuthChecked=true
+                // On failed auth, clear token to avoid loops
+                localStorage.removeItem('token')
             })
             
     }
