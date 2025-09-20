@@ -39,21 +39,48 @@ export const Navbar = ({ isProductList = false }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [showNavOptions, setShowNavOptions] = React.useState(true);
+  const [lastScrollY, setLastScrollY] = React.useState(0);
   const { openLoginPopup } = useLoginPopup();
 
   const wishlistItems = useSelector(selectWishlistItems)
   const isHome = location.pathname === '/'
+  const isShop = location.pathname.startsWith('/shop')
+  const isShopOrHome = isShop || isHome
 
-  // Handle scroll effect
+  // Handle scroll effect (blur/elevation) and hide-on-scroll for Shop and Home pages
   React.useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 50);
+      const currentY = window.scrollY;
+      setIsScrolled(currentY > 50);
+
+      // Apply hide-on-scroll only on Shop and Home pages
+      const isShopOrHome = location.pathname.startsWith('/shop') || location.pathname === '/';
+      if (!isShopOrHome) {
+        setShowNavOptions(true);
+        setLastScrollY(currentY);
+        return;
+      }
+
+      const delta = currentY - lastScrollY;
+      const threshold = 6; // minimal movement to toggle
+      if (Math.abs(delta) > threshold) {
+        if (delta > 0) {
+          // Scrolling down -> hide options
+          setShowNavOptions(false);
+        } else {
+          // Scrolling up -> show options
+          setShowNavOptions(true);
+        }
+        setLastScrollY(currentY);
+      }
+      // If near top, always show
+      if (currentY < 10) setShowNavOptions(true);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [lastScrollY, location.pathname]);
 
   const handleToggleFilters = () => {
     dispatch(toggleFilters())
@@ -72,7 +99,9 @@ export const Navbar = ({ isProductList = false }) => {
         borderBottom: '1px solid rgba(212,175,55,0.35)',
         top: 0,
         zIndex: 1100,
-        transition: 'all 0.3s ease-in-out'
+        transition: 'all 0.3s ease-in-out',
+        transform: (isShopOrHome && !showNavOptions) ? 'translateY(-120%)' : 'translateY(0)',
+        pointerEvents: (isShopOrHome && !showNavOptions) ? 'none' : 'auto'
       }}
     >
       <Container maxWidth="xl">
@@ -109,6 +138,8 @@ export const Navbar = ({ isProductList = false }) => {
                   SJ
                 </Typography>
               </Box>
+          
+              {(!location.pathname.startsWith('/shop') || showNavOptions) && (
               <IconButton
                 size="large"
                 aria-label="menu"
@@ -129,6 +160,7 @@ export const Navbar = ({ isProductList = false }) => {
               >
                 <MenuIcon />
               </IconButton>
+              )}
               <Drawer
                 anchor="right"
                 open={drawerOpen}
@@ -276,7 +308,17 @@ export const Navbar = ({ isProductList = false }) => {
 
           {/* Desktop menu items */}
           {!isMobile && (
-            <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', gap: 3 }}>
+            <Box sx={{ flexGrow: 1, display: ((!location.pathname.startsWith('/shop') && location.pathname !== '/') || showNavOptions) ? 'flex' : 'none', justifyContent: 'center', gap: 3, alignItems: 'center' }}>
+              {location.pathname.startsWith('/shop') && (
+                <Typography sx={{
+                  color: isScrolled ? '#1a1a1a' : '#f5f5f5',
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  mr: 2
+                }}>
+                  Explore our products
+                </Typography>
+              )}
               <Button
                 onClick={() => navigate('/')}
                 sx={{ 
@@ -396,7 +438,7 @@ export const Navbar = ({ isProductList = false }) => {
           )}
 
           {/* Right side actions */}
-          <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ flexGrow: 0, display: ((!location.pathname.startsWith('/shop') && location.pathname !== '/') || showNavOptions) ? 'flex' : 'none', alignItems: 'center', gap: 2 }}>
             {/* Filter button for product list */}
             {isProductList && (
               <IconButton
@@ -558,7 +600,7 @@ export const Navbar = ({ isProductList = false }) => {
               )}
             </Box>
           </Box>
-        </Toolbar>
+          </Toolbar>
       </Container>
     </AppBar>
   );

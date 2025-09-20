@@ -21,4 +21,4 @@ export const getImageUrl = (imagePath) => {
   
   // Default case - return as is
   return imagePath;
-}; 
+};

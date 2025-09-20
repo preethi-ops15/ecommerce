@@ -45,7 +45,7 @@ const productSchema= new Schema({
         enum: [
             '925-silver', '999-silver', 'gold-plated', 'rhodium-plated', 
             'oxidized-silver', 'antique-silver', 'white-gold', 'yellow-gold', 
-            'rose-gold', 'platinum', 'palladium'
+            'rose-gold', 'platinum', 'palladium', '24k-gold'
         ]
     },
     stockQuantity:{

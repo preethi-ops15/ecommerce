@@ -16,6 +16,7 @@ import { useFetchLoggedInUserDetails } from "./hooks/useAuth/useFetchLoggedInUse
 import { Box, CircularProgress } from '@mui/material';
 import { useEffect } from 'react';
 import { CartPage, CheckoutPage, ForgotPasswordPage, HomePage, LoginPage, OrderSuccessPage, OtpVerificationPage, ProductDetailsPage, ResetPasswordPage, SignupPage, UserOrdersPage, UserProfilePage, WishlistPage, AboutPage, ContactPage, UserDashboardPage, AdminPage } from './pages';
+import TermsPage from './pages/TermsPage';
 import ChitPlansPage from './features/chit-plans/ChitPlansPage';
 import ShopPage from './features/shop/ShopPage';
 import TestPage from './pages/TestPage';
@@ -57,22 +58,22 @@ function App() {
 
       // Intercept auth routes to show popups instead of pages
       if (location.pathname === '/login') {
-        openLoginPopup();
+        if (!isLoginPopupOpen) openLoginPopup();
         // replace navigation to home so the URL doesn't stay on /login
         window.history.replaceState(null, '', '/');
       } else if (location.pathname === '/signup') {
-        openSignupPopup();
+        if (!isSignupPopupOpen) openSignupPopup();
         window.history.replaceState(null, '', '/');
       }
-    }, [location.pathname]);
+    }, [location.pathname, isLoginPopupOpen, isSignupPopupOpen]);
 
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        {location.pathname !== '/shop' && !location.pathname.startsWith('/product-details') && !location.pathname.startsWith('/chit-plans') && location.pathname !== '/user-dashboard' && <Navbar />}
+        {location.pathname !== '/shop' && location.pathname !== '/cart' && location.pathname !== '/wishlist' && location.pathname !== '/checkout' && !location.pathname.startsWith('/product-details') && !location.pathname.startsWith('/chit-plans') && !location.pathname.startsWith('/terms') && location.pathname !== '/user-dashboard' && <Navbar />}
         <Box sx={{ flexGrow: 1 }}>
           <Outlet />
         </Box>
-        {!location.pathname.startsWith('/chit-plans') && <Footer />}
+        {!location.pathname.startsWith('/chit-plans') && !location.pathname.startsWith('/terms') && <Footer />}
         <LoginPopup open={isLoginPopupOpen} onClose={closeLoginPopup} />
         <SignupPopup open={isSignupPopupOpen} onClose={closeSignupPopup} />
       </Box>
@@ -111,6 +112,7 @@ function App() {
         <Route path="/checkout" element={<Protected><CheckoutPage /></Protected>} />
         <Route path="/order-success/:id" element={<Protected><OrderSuccessPage /></Protected>} />
         <Route path="/chit-plans/*" element={<ChitPlansPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -131,6 +133,7 @@ function App() {
         <Route path="/checkout" element={<Protected><CheckoutPage /></Protected>} />
         <Route path="/order-success/:id" element={<Protected><OrderSuccessPage /></Protected>} />
         <Route path="/chit-plans/*" element={<ChitPlansPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/orders" element={<Protected><UserOrdersPage /></Protected>} />
         <Route path="/wishlist" element={<Protected><WishlistPage /></Protected>} />
         <Route path="/logout" element={<Protected><Logout /></Protected>} />

@@ -115,10 +115,10 @@ export const AdminOrders = () => {
                     <TableCell align="right">{order._id}</TableCell>
                     <TableCell align="right">
                       {
-                        order.item.map((product)=>(
-                          <Stack mt={2} flexDirection={'row'} alignItems={'center'} columnGap={2}>
-                            <Avatar src={product.product.thumbnail}></Avatar>
-                            <Typography>{product.product.title}</Typography>
+                        (order.item || []).map((product, idx)=>(
+                          <Stack key={idx} mt={2} flexDirection={'row'} alignItems={'center'} columnGap={2}>
+                            <Avatar src={product.thumbnail}></Avatar>
+                            <Typography>{product.title}</Typography>
                           </Stack>
                         ))
                       }
@@ -126,10 +126,20 @@ export const AdminOrders = () => {
                     <TableCell align="right">{order.total}</TableCell>
                     <TableCell align="right">
                       <Stack>
-                        <Typography>{order.address[0].street}</Typography>
-                        <Typography>{order.address[0].city}</Typography>
-                        <Typography>{order.address[0].state}</Typography>
-                        <Typography>{order.address[0].postalCode}</Typography>
+                        {
+                          (()=>{
+                            const addr = Array.isArray(order.address) ? order.address[0] : order.address;
+                            if (!addr) return <Typography>N/A</Typography>;
+                            return (
+                              <>
+                                <Typography>{addr.street || addr.addressLine1 || ''}</Typography>
+                                <Typography>{addr.city || ''}</Typography>
+                                <Typography>{addr.state || ''}</Typography>
+                                <Typography>{addr.postalCode || addr.zip || ''}</Typography>
+                              </>
+                            )
+                          })()
+                        }
                       </Stack>
                     </TableCell>
                     <TableCell align="right">{order.paymentMode}</TableCell>

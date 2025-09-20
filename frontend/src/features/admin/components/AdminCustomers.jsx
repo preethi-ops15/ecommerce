@@ -17,7 +17,10 @@ import {
   InputAdornment,
   IconButton,
   CircularProgress,
-  Alert
+  Alert,
+  Button,
+  Tabs,
+  Tab
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -33,15 +36,21 @@ export const AdminCustomers = () => {
   const users = useSelector(selectUsers);
   const usersStatus = useSelector(selectUsersStatus);
   const [searchTerm, setSearchTerm] = useState('');
+  const [tab, setTab] = useState('users');
 
   useEffect(() => {
     dispatch(fetchAllUsersAsync());
   }, [dispatch]);
 
-  const filteredCustomers = (users || []).filter(customer =>
+  const baseFiltered = (users || []).filter(customer =>
     (customer.name && customer.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const filteredCustomers = baseFiltered.filter(c => {
+    const isMember = !!(c.chitPlan && c.chitPlan.status === 'active');
+    return tab === 'members' ? isMember : !isMember;
+  });
 
   const getStatusColor = (isVerified, isAdmin) => {
     if (isAdmin) return 'error';
@@ -53,6 +62,28 @@ export const AdminCustomers = () => {
     if (isAdmin) return 'Admin';
     if (isVerified) return 'Verified';
     return 'Pending';
+  };
+
+  // Helpers for Members tab
+  const planMeta = {
+    1: { name: 'Basic Plan', amount: 1000 },
+    2: { name: 'Standard Plan', amount: 2500 },
+    3: { name: 'Premium Plan', amount: 5000 }
+  };
+
+  const computeMemberStats = (customer) => {
+    const cp = customer?.chitPlan;
+    if (!cp || cp.status !== 'active' || !cp.startDate) {
+      return { monthsCompleted: 0, pendingMonths: 10, amountPaid: 0, planName: 'N/A', startDate: null };
+    }
+    const base = planMeta[cp.planId] || { name: cp.planName || 'Plan', amount: 0 };
+    const start = new Date(cp.startDate);
+    const now = new Date();
+    const months = Math.max(0, Math.floor((now.getTime() - start.getTime()) / (1000*60*60*24*30)));
+    const capped = Math.min(10, months);
+    const pending = Math.max(0, 10 - capped);
+    const paid = capped * (base.amount || 0);
+    return { monthsCompleted: capped, pendingMonths: pending, amountPaid: paid, planName: base.name, startDate: start };
   };
 
   const getInitials = (name) => {
@@ -97,9 +128,21 @@ export const AdminCustomers = () => {
       </Typography>
 
       <Paper sx={{ p: 3 }}>
+        {/* Users / Members Tabs */}
+        <Tabs
+          value={tab}
+          onChange={(e, v) => setTab(v)}
+          sx={{ mb: 2 }}
+          textColor="primary"
+          indicatorColor="primary"
+        >
+          <Tab value="users" label="Users" />
+          <Tab value="members" label="Members" />
+        </Tabs>
+
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h6">
-            All Customers ({filteredCustomers.length})
+            {tab === 'members' ? 'Members' : 'Users'} ({filteredCustomers.length})
           </Typography>
           <TextField
             placeholder="Search customers..."
@@ -122,9 +165,20 @@ export const AdminCustomers = () => {
               <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
                 <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Join Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Last Login</TableCell>
+                {tab === 'members' ? (
+                  <>
+                    <TableCell sx={{ fontWeight: 600 }}>Chit Plan</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Start Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Amount Paid</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Pending Months</TableCell>
+                  </>
+                ) : (
+                  <>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Join Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Last Login</TableCell>
+                  </>
+                )}
                 <TableCell sx={{ fontWeight: 600 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -168,32 +222,72 @@ export const AdminCustomers = () => {
                       </Stack>
                     </Stack>
                   </TableCell>
+                  {tab === 'members' ? (
+                    <>
+                      {(() => {
+                        const stats = computeMemberStats(customer);
+                        return (
+                          <>
+                            <TableCell>
+                              <Typography variant="body2">{stats.planName}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{stats.startDate ? formatDate(stats.startDate) : 'N/A'}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">₹{Number(stats.amountPaid).toLocaleString('en-IN')}</Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip label={`${stats.pendingMonths} months`} size="small" />
+                            </TableCell>
+                          </>
+                        );
+                      })()}
+                    </>
+                  ) : (
+                    <>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(customer.isVerified, customer.isAdmin)}
+                          color={getStatusColor(customer.isVerified, customer.isAdmin)}
+                          size="small"
+                          variant={customer.isAdmin ? "filled" : "outlined"}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatDate(customer.createdAt)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {formatDate(customer.lastLoginAt) || 'Never'}
+                        </Typography>
+                      </TableCell>
+                    </>
+                  )}
                   <TableCell>
-                    <Chip
-                      label={getStatusLabel(customer.isVerified, customer.isAdmin)}
-                      color={getStatusColor(customer.isVerified, customer.isAdmin)}
-                      size="small"
-                      variant={customer.isAdmin ? "filled" : "outlined"}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(customer.createdAt)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(customer.lastLoginAt) || 'Never'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleViewCustomer(customer._id)}
-                      sx={{ color: 'primary.main' }}
-                    >
-                      <ViewIcon />
-                    </IconButton>
+                    <Stack direction="row" spacing={1}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleViewCustomer(customer._id)}
+                        sx={{ color: 'primary.main' }}
+                      >
+                        <ViewIcon />
+                      </IconButton>
+                      {tab === 'members' && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            // Open shop in redeem mode – member should open from their account to apply redemption
+                            window.open('/shop?redeem=true', '_blank');
+                          }}
+                        >
+                          Redeem
+                        </Button>
+                      )}
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))}

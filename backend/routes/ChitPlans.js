@@ -12,6 +12,9 @@ router.post("/verify-payment", verifyToken, chitPlanController.verifyPayment);
 // Get user's chit plan details
 router.get("/user-plan", verifyToken, chitPlanController.getUserPlan);
 
+// Get redeemable amount for current user
+router.get("/redeemable", verifyToken, chitPlanController.getRedeemable);
+
 // Get all chit plans
 router.get("/plans", chitPlanController.getPlans);
 

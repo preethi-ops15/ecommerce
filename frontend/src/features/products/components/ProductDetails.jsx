@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { 
   Box, 
   Button, 
@@ -93,6 +93,9 @@ import 'swiper/css/thumbs';
 
 export const ProductDetails = () => {
   const { id } = useParams();
+  const location = useLocation();
+  const fromCategory = location.state?.fromCategory || null;
+  const isRedeemMode = new URLSearchParams(location.search).get('redeem') === 'true';
   const product = useSelector(selectSelectedProduct);
   const loggedInUser = useSelector(selectLoggedInUser);
   const dispatch = useDispatch();
@@ -103,6 +106,8 @@ export const ProductDetails = () => {
   const [pincode, setPincode] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [priceBreakupOpen, setPriceBreakupOpen] = useState(false);
+  const [redeemInfo, setRedeemInfo] = useState({ eligibleToRedeem: false, monthsCompleted: 0, totalMonths: 10, planAmount: 0, redeemableAmount: 0 });
+  const [redeemLoading, setRedeemLoading] = useState(false);
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -138,6 +143,44 @@ export const ProductDetails = () => {
       dispatch(fetchReviewsByProductIdAsync(id));
     }
   }, [id]);
+
+  // Fetch redeemable amount if in redeem mode and logged in
+  useEffect(() => {
+    const fetchRedeemable = async () => {
+      if (!isRedeemMode || !loggedInUser?._id) return;
+      try {
+        setRedeemLoading(true);
+        const res = await fetch('/api/chit-plans/redeemable', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (data?.success && data?.data) {
+          setRedeemInfo(data.data);
+        } else {
+          setRedeemInfo({ eligibleToRedeem: false, monthsCompleted: 0, totalMonths: 10, planAmount: 0, redeemableAmount: 0 });
+        }
+      } catch (e) {
+        console.error('Redeemable fetch error:', e);
+        setRedeemInfo({ eligibleToRedeem: false, monthsCompleted: 0, totalMonths: 10, planAmount: 0, redeemableAmount: 0 });
+      } finally {
+        setRedeemLoading(false);
+      }
+    };
+    fetchRedeemable();
+  }, [isRedeemMode, loggedInUser?._id]);
+
+  // Compute adjusted member price when redeem is applied
+  const adjustedMemberPrice = useMemo(() => {
+    if (!product) return null;
+    const baseMember = Number(product.memberPrice) > 0 ? Number(product.memberPrice) : Number(product.price) || 0;
+    if (isRedeemMode && redeemInfo.eligibleToRedeem) {
+      const adjusted = Math.max(baseMember - Number(redeemInfo.redeemableAmount || 0), 0);
+      return { baseMember, adjusted };
+    }
+    return { baseMember, adjusted: null };
+  }, [product, isRedeemMode, redeemInfo]);
 
   useEffect(() => {
     if (cartItemAddStatus === 'fulfilled') {
@@ -404,15 +447,21 @@ export const ProductDetails = () => {
 
   return (
     <Box sx={{ backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
-      {/* Minimal Header: Back to Shop (left), Wishlist/Cart (right) */}
+      {/* Minimal Header: Back to Category/Shop (left), Wishlist/Cart (right) */}
       <Container maxWidth="lg" sx={{ py: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
           <Button
             startIcon={<ArrowBack />}
-            onClick={() => navigate('/shop')}
+            onClick={() => {
+              if (fromCategory) {
+                navigate(`/shop?category=${encodeURIComponent(fromCategory)}`);
+              } else {
+                navigate('/shop');
+              }
+            }}
             sx={{ color: '#666', textTransform: 'none', '&:hover': { backgroundColor: '#f5f5f5' } }}
           >
-            Back to Shop
+            {fromCategory ? `Back to ${fromCategory.charAt(0).toUpperCase() + fromCategory.slice(1)}` : 'Back to Shop'}
           </Button>
           <Stack direction="row" spacing={1}>
             <IconButton
@@ -596,9 +645,16 @@ export const ProductDetails = () => {
                             Special price for members
                           </Typography>
                         </Stack>
-                        <Typography variant="h4" fontWeight={700} color="primary">
-                          ₹{product.memberPrice?.toLocaleString('en-IN')}
-                        </Typography>
+                        <Stack alignItems="flex-end">
+                          <Typography variant="h4" fontWeight={700} color="primary">
+                            ₹{(adjustedMemberPrice?.adjusted ?? product.memberPrice)?.toLocaleString('en-IN')}
+                          </Typography>
+                          {isRedeemMode && redeemInfo && (
+                            <Typography variant="caption" color="text.secondary">
+                              {redeemLoading ? 'Checking redeem…' : redeemInfo.eligibleToRedeem ? `Redeem applied: -₹${Number(redeemInfo.redeemableAmount).toLocaleString('en-IN')}` : 'Redeem unavailable'}
+                            </Typography>
+                          )}
+                        </Stack>
                       </Stack>
                       <Button
                         variant="text"
@@ -618,6 +674,12 @@ export const ProductDetails = () => {
                       >
                         Learn more about membership & chit plans →
                       </Button>
+                      {isRedeemMode && (
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
+                          <Chip size="small" label={redeemInfo.eligibleToRedeem ? `Eligible: ${redeemInfo.monthsCompleted}/${redeemInfo.totalMonths} months` : 'Not eligible to redeem'} />
+                          <Button size="small" onClick={() => navigate('/shop')} sx={{ textTransform: 'none' }}>Clear Redeem</Button>
+                        </Stack>
+                      )}
                     </Box>
                   )}
                 </Box>

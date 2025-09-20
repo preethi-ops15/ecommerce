@@ -17,7 +17,7 @@ import {
 import { getImageUrl } from '../../utils/imageUtils';
 import { useProductPriceCalculation } from '../metal-rates';
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, currentCategory }) => {
   const navigate = useNavigate();
   const loggedInUser = useSelector(selectLoggedInUser);
   const { openLoginPopup } = useLoginPopup();
@@ -86,9 +86,10 @@ const ProductCard = ({ product }) => {
   };
 
   const goToDetails = () => {
-    const detailsPath = `/product-details/${product._id}`;
+    const isRedeemMode = new URLSearchParams(window.location.search).get('redeem') === 'true';
+    const detailsPath = isRedeemMode ? `/product-details/${product._id}?redeem=true` : `/product-details/${product._id}`;
     if (loggedInUser) {
-      navigate(detailsPath);
+      navigate(detailsPath, { state: { fromCategory: currentCategory || null } });
     } else {
       sessionStorage.setItem('redirectAfterLogin', detailsPath);
       openLoginPopup();

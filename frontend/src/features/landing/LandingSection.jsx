@@ -74,7 +74,7 @@ export const LandingSection = () => {
           height: '100%',
           background: `url('/silver-bar.jpg.png') center/cover no-repeat`,
           border: { xs: '1px solid #e0e0e0', sm: '1px solid #e0e0e0', md: '1px solid #e0e0e0' },
-          borderRadius: { xs: '12px', sm: '16px', md: '20px' },
+          borderRadius: { xs: '24px', sm: '32px', md: '40px' },
           boxSizing: 'border-box',
           zIndex: 0,
         }

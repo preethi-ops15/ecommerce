@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Container,
@@ -477,7 +477,9 @@ const ChitPlanPayment = () => {
             <FormControlLabel
               control={<Checkbox checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} />}
               label={
-                <Typography variant="body2">I agree to the Terms and Conditions and confirm a 12-month commitment.</Typography>
+                <Typography variant="body2">
+                  I agree to the <Typography component={RouterLink} to="/terms" target="_blank" sx={{ color: 'primary.main', textDecoration: 'underline' }} display="inline">Terms and Conditions</Typography> and confirm a 12-month commitment.
+                </Typography>
               }
               sx={{ mt: 2 }}
             />

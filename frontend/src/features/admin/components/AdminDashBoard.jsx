@@ -23,7 +23,7 @@ import {
   Visibility
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import { axiosi } from '../../../config/axios';
 
 const StatCard = ({ title, value, icon, color, subtitle, percentage }) => (
   <motion.div
@@ -96,29 +96,30 @@ export const AdminDashBoard = () => {
       
       // Fetch data from multiple endpoints
       const [ordersRes, productsRes, usersRes, queriesRes] = await Promise.all([
-        axios.get('/api/orders'),
-        axios.get('/api/products'),
-        axios.get('/api/users'),
-        axios.get('/api/queries')
+        axiosi.get('/orders'),
+        axiosi.get('/products'),
+        axiosi.get('/users'),
+        axiosi.get('/queries')
       ]);
 
       // Calculate revenue from orders
-      const orders = ordersRes.data.orders || [];
-      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+      const orders = (ordersRes.data && (ordersRes.data.orders || ordersRes.data.data || [])) || [];
+      const totalRevenue = orders.reduce((sum, order) => sum + (Number(order.total) || 0), 0);
       const totalOrders = orders.length;
 
       // Get product count
-      const products = productsRes.data.products || [];
+      const products = (productsRes.data && (productsRes.data.products || productsRes.data.data || [])) || [];
       const totalProducts = products.filter(p => !p.isDeleted).length;
 
       // Get user count
-      const users = usersRes.data.users || [];
+      const users = (usersRes.data && (usersRes.data.users || usersRes.data.data || [])) || [];
       const totalCustomers = users.length;
 
       // Get query statistics
-      const queries = queriesRes.data.queries || [];
-      const pendingQueries = queries.filter(q => q.status === 'pending').length;
-      const resolvedQueries = queries.filter(q => q.status === 'resolved').length;
+      const queriesPayload = (queriesRes.data && queriesRes.data.data) || {};
+      const queries = queriesPayload.queries || [];
+      const pendingQueries = Array.isArray(queries) ? queries.filter(q => q.status === 'pending').length : 0;
+      const resolvedQueries = Array.isArray(queries) ? queries.filter(q => q.status === 'resolved').length : 0;
 
       setStats({
         totalRevenue,

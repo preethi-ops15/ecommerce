@@ -101,6 +101,63 @@ exports.createPaymentOrder = async (req, res) => {
   }
 };
 
+// Get redeemable amount for the logged-in user
+exports.getRedeemable = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const plan = user.chitPlan;
+    if (!plan || plan.status !== 'active' || !plan.startDate) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          eligibleToRedeem: false,
+          monthsCompleted: 0,
+          totalMonths: 10,
+          planAmount: 0,
+          redeemableAmount: 0
+        }
+      });
+    }
+
+    // Find the latest completed chit plan order to get monthly amount
+    const lastCompleted = await ChitPlanOrder.findOne({ userId: userId, status: 'completed' })
+      .sort({ completedAt: -1 })
+      .lean();
+
+    // Fallback to planId mapping if order missing
+    const planAmountById = { 1: 1000, 2: 2500, 3: 5000 };
+    const monthlyAmount = lastCompleted?.amount || planAmountById[plan.planId] || 0;
+
+    const start = new Date(plan.startDate);
+    const now = new Date();
+    const diffMs = now.getTime() - start.getTime();
+    const monthsCompleted = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24 * 30)));
+    const cappedMonths = Math.min(10, monthsCompleted);
+    const redeemableAmount = cappedMonths * monthlyAmount;
+    const eligibleToRedeem = monthsCompleted >= 10 && monthlyAmount > 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        eligibleToRedeem,
+        monthsCompleted,
+        totalMonths: 10,
+        planAmount: monthlyAmount,
+        redeemableAmount
+      }
+    });
+  } catch (error) {
+    console.error('Get redeemable error:', error);
+    res.status(500).json({ success: false, message: 'Failed to compute redeemable amount' });
+  }
+};
+
 exports.verifyPayment = async (req, res) => {
   try {
     // Check if Razorpay is available

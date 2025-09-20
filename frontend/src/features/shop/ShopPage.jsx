@@ -5,9 +5,9 @@ import {
   Box, Grid, Typography, Card, CardContent, CardActions,
   Button, Stack, CircularProgress,
   FormControl, InputLabel, Select, MenuItem, Slider, Checkbox,
-  FormControlLabel, Divider, Chip, Drawer, IconButton, Pagination, Container, Rating, Paper, Dialog, DialogContent, Badge
+  FormControlLabel, Divider, Chip, Drawer, IconButton, Pagination, Container, Rating, Paper, Dialog, DialogContent, Badge, Menu
 } from '@mui/material';
-import { FilterList as FilterListIcon, Close as CloseIcon, Refresh as RefreshIcon, Home as HomeIcon } from '@mui/icons-material';
+import { FilterList as FilterListIcon, Close as CloseIcon, Refresh as RefreshIcon, Home as HomeIcon, Storefront as StorefrontIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import { fetchProductsAsync, selectProducts, selectProductStatus } from '../products/ProductSlice';
@@ -44,6 +44,11 @@ const ShopPage = () => {
   const [ratesOpen, setRatesOpen] = useState(true); // auto-open on enter
   const [expandedCategories, setExpandedCategories] = useState({});
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [sortMenuAnchor, setSortMenuAnchor] = useState(null);
+  // Header show/hide on scroll
+  const [showHeader, setShowHeader] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [atTop, setAtTop] = useState(true);
 
   // Initialize filters from URL parameters
   useEffect(() => {
@@ -170,6 +175,11 @@ const ShopPage = () => {
       list.sort((a, b) => (a.price || 0) - (b.price || 0));
     } else if (sortBy === 'price-high') {
       list.sort((a, b) => (b.price || 0) - (a.price || 0));
+    } else if (sortBy === 'top-liked') {
+      // Fallback: use numOfReviews as a proxy if likes not available
+      list.sort((a, b) => (b.numOfReviews || 0) - (a.numOfReviews || 0));
+    } else if (sortBy === 'top-rated') {
+      list.sort((a, b) => (b.ratings || 0) - (a.ratings || 0));
     }
 
     return list;
@@ -188,119 +198,185 @@ const ShopPage = () => {
     return () => clearTimeout(handler);
   }, [searchQuery, selectedCategories, sortBy]);
 
+  // Handle header visibility on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY || 0;
+      setAtTop(currentY < 8);
+      if (currentY > lastScrollY && currentY > 80) {
+        // scrolling down
+        setShowHeader(false);
+      } else {
+        // scrolling up
+        setShowHeader(true);
+      }
+      setLastScrollY(currentY);
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [lastScrollY]);
+
   return (
-    <Container maxWidth="xl" sx={{ py: 2 }}>
-      {/* Minimal Shop Header: Logo + Search icon + Wishlist/Cart */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, position: 'sticky', top: 8, zIndex: 5 }}>
-        {/* Logo */}
-        <Box
-          component="a"
-          href="/"
-          sx={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 44, height: 44, borderRadius: '50%', backgroundColor: '#d4af37', textDecoration: 'none',
-            transition: 'all 0.3s ease', '&:hover': { transform: 'scale(1.05)', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }
-          }}
-        >
-          <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem', fontFamily: 'serif' }}>SJ</Typography>
-        </Box>
-
-        {/* Sticky Live Rates button */}
-        <Box sx={{ ml: 'auto', mr: 2, position: 'sticky', top: 8 }}>
-          <Button
-            variant="outlined"
-            onClick={() => setRatesOpen(true)}
-            sx={{ borderColor: '#d4af37', color: '#d4af37', fontWeight: 600, textTransform: 'none', '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
-          >
-            Live Rates
-          </Button>
-        </Box>
-
-        {/* Icons (Wishlist, Cart) */}
-        <Stack direction="row" spacing={1} alignItems="center">
-          <IconButton
-            onClick={() => navigate('/')}
-            sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
-          >
-            <HomeIcon />
-          </IconButton>
-          <IconButton
-            onClick={() => {
-              if (loggedInUser) { navigate('/wishlist'); } else { sessionStorage.setItem('redirectAfterLogin', '/wishlist'); openLoginPopup(); }
-            }}
-            sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
-          >
-            <Badge badgeContent={wishlistItems?.length || 0} color="error">
-              <FavoriteBorderIcon />
-            </Badge>
-          </IconButton>
-          <IconButton
-            onClick={() => {
-              if (loggedInUser) { navigate('/cart'); } else { sessionStorage.setItem('redirectAfterLogin', '/cart'); openLoginPopup(); }
-            }}
-            sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
-          >
-            <Badge badgeContent={cartItems?.length || 0} color="error">
-              <ShoppingCartOutlinedIcon />
-            </Badge>
-          </IconButton>
-        </Stack>
-      </Box>
-      {/* No banner and no search UI */}
-
-      {/* Right-side Filter / Sort control */}
-      <Box sx={{
-        position: 'fixed',
-        right: { xs: 12, md: 24 },
-        bottom: { xs: 16, md: 'auto' },
-        top: { xs: 'auto', md: 96 },
-        zIndex: 10
-      }}>
-        {selectedCategories.length === 0 ? (
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<FilterListIcon />}
-            onClick={() => setFilterDrawerOpen(true)}
-            sx={{
-              bgcolor: '#d4af37',
-              color: '#fff',
-              fontWeight: 700,
-              textTransform: 'none',
-              '&:hover': { bgcolor: '#b8860b' }
-            }}
-          >
-            Filter
-          </Button>
-        ) : (
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ xs: 'stretch', sm: 'center' }}>
-            <FormControl size="small" sx={{ minWidth: 180, bgcolor: '#fff', borderRadius: 1 }}>
-              <InputLabel id="sort-by-label">Sort by</InputLabel>
-              <Select
-                labelId="sort-by-label"
-                label="Sort by"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <MenuItem value={'newest'}>New Arrivals</MenuItem>
-                <MenuItem value={'price-low'}>Price: Low to High</MenuItem>
-                <MenuItem value={'price-high'}>Price: High to Low</MenuItem>
-                <MenuItem value={'best-seller'}>Best Seller</MenuItem>
-                <Divider />
-                <MenuItem value={'gender-men'}>Gender: Men</MenuItem>
-                <MenuItem value={'gender-women'}>Gender: Women</MenuItem>
-              </Select>
-            </FormControl>
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/')}
-              sx={{ borderColor: '#d4af37', color: '#d4af37', textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
+    <>
+      {/* Fixed Header overlaying banner/content - visible when scrolling up, hidden when scrolling down */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          transform: showHeader ? 'translateY(0)' : 'translateY(-120%)',
+          transition: 'transform 300ms ease',
+          backgroundColor: 'rgba(255,255,255,0.5)',
+          backdropFilter: 'saturate(160%) blur(4px)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        }}
+      >
+        <Container maxWidth="xl" sx={{ py: 1.5 }}>
+          <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            {/* Logo */}
+            <Box
+              component="a"
+              href="/"
+              sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 44, height: 44, borderRadius: '50%', backgroundColor: '#d4af37', textDecoration: 'none',
+                transition: 'all 0.3s ease', '&:hover': { transform: 'scale(1.05)', boxShadow: '0 4px 12px rgba(212,175,55,0.3)' }
+              }}
             >
-              Back to Home
-            </Button>
-          </Stack>
-        )}
+              <Typography sx={{ color: 'white', fontWeight: 700, fontSize: '1.1rem', fontFamily: 'serif' }}>SJ</Typography>
+            </Box>
+
+            {/* Center text - absolute to stay centered regardless of side controls */}
+            <Typography
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontWeight: 700,
+                fontFamily: (theme) => theme.typography.fontFamily,
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              Explore our products
+            </Typography>
+
+            {/* Right controls: when no category -> Filter + Live Rates; when category -> Sort */}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 'auto' }}>
+              {selectedCategories.length === 0 ? (
+                <>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<FilterListIcon />}
+                    onClick={() => setFilterDrawerOpen(true)}
+                    sx={{
+                      bgcolor: '#d4af37', color: '#fff', fontWeight: 700, textTransform: 'none',
+                      '&:hover': { bgcolor: '#b8860b' }
+                    }}
+                  >
+                    Filter
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setRatesOpen(true)}
+                    sx={{ borderColor: '#d4af37', color: '#d4af37', fontWeight: 600, textTransform: 'none', '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
+                  >
+                    Live Rates
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+                    sx={{ bgcolor: '#d4af37', color: '#fff', fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#b8860b' } }}
+                  >
+                    Sort
+                  </Button>
+                  <Menu
+                    anchorEl={sortMenuAnchor}
+                    open={Boolean(sortMenuAnchor)}
+                    onClose={() => setSortMenuAnchor(null)}
+                  >
+                    <MenuItem onClick={() => { setSortMenuAnchor(null); setSortBy('price-low'); }}>Price: Low to High</MenuItem>
+                    <MenuItem onClick={() => { setSortMenuAnchor(null); setSortBy('price-high'); }}>Price: High to Low</MenuItem>
+                    <MenuItem onClick={() => { setSortMenuAnchor(null); setSortBy('newest'); }}>Newest</MenuItem>
+                    <MenuItem onClick={() => { setSortMenuAnchor(null); setSortBy('top-liked'); }}>Top Liked</MenuItem>
+                    <MenuItem onClick={() => { setSortMenuAnchor(null); setSortBy('top-rated'); }}>Top Rated</MenuItem>
+                  </Menu>
+                </>
+              )}
+            </Stack>
+
+            {/* Icons (Shop/Home depending on state), Wishlist, Cart */}
+            <Stack direction="row" spacing={1} alignItems="center">
+              {selectedCategories.length > 0 ? (
+                <IconButton
+                  onClick={() => { setSelectedCategories([]); setSearchParams({}); }}
+                  sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+                  aria-label="Back to Shop"
+                >
+                  <StorefrontIcon />
+                </IconButton>
+              ) : (
+                <IconButton
+                  onClick={() => navigate('/')}
+                  sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+                >
+                  <HomeIcon />
+                </IconButton>
+              )}
+              <IconButton
+                onClick={() => {
+                  if (loggedInUser) { navigate('/wishlist'); } else { sessionStorage.setItem('redirectAfterLogin', '/wishlist'); openLoginPopup(); }
+                }}
+                sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+              >
+                <Badge badgeContent={wishlistItems?.length || 0} color="error">
+                  <FavoriteBorderIcon />
+                </Badge>
+              </IconButton>
+              <IconButton
+                onClick={() => {
+                  if (loggedInUser) { navigate('/cart'); } else { sessionStorage.setItem('redirectAfterLogin', '/cart'); openLoginPopup(); }
+                }}
+                sx={{ color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+              >
+                <Badge badgeContent={cartItems?.length || 0} color="error">
+                  <ShoppingCartOutlinedIcon />
+                </Badge>
+              </IconButton>
+            </Stack>
+          </Box>
+        </Container>
       </Box>
+
+      {/* Top Banner - only when no category selected */}
+      {selectedCategories.length === 0 && (
+     <Container maxWidth="xl" disableGutters>
+     <Box
+       sx={{
+         width: "100%",
+         height: "70vh", // 70% of screen height
+         backgroundImage: "url(/auth-jewelry-bg.png)",
+         backgroundSize: "cover",
+         backgroundPosition: "center",
+         borderRadius: { xs: 0, sm: 0, md: "0 0 16px 16px" }, 
+         // curve only at bottom corners
+         overflow: "hidden",
+       }}
+     />
+   </Container>
+      )}
+
+      <Container maxWidth="xl" sx={{ py: 2, pt: { xs: 9, sm: 10 } }}>
+      {/* Header moved to fixed overlay. No in-flow filter bar. */}
+
+      {/* Optional: keep sort controls elsewhere if needed */}
 
       {/* Filter Drawer on the right */}
       <Drawer anchor="right" open={filterDrawerOpen} onClose={() => setFilterDrawerOpen(false)}>
@@ -383,7 +459,7 @@ const ShopPage = () => {
                         <Grid container spacing={{ xs: 2, md: 3 }}>
                           {visibleProducts(cat, 4).map((product) => (
                             <Grid item xs={12} sm={6} md={3} key={product._id}>
-                              <ProductCard product={product} />
+                              <ProductCard product={product} currentCategory={cat} />
                             </Grid>
                           ))}
                         </Grid>
@@ -403,20 +479,9 @@ const ShopPage = () => {
               ) : (
                 // Show only the selected category's products in a grid (apply client-side sort/filter as needed)
                 <Grid container spacing={{ xs: 2, md: 3 }}>
-                  {/* Inline Back to Home for mobile/top visibility */}
-                  <Grid item xs={12} sx={{ display: { xs: 'block', md: 'none' } }}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => navigate('/')}
-                      fullWidth
-                      sx={{ borderColor: '#d4af37', color: '#d4af37', textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: '#b8860b', color: '#b8860b' } }}
-                    >
-                      Back to Home
-                    </Button>
-                  </Grid>
                   {getDisplayedProducts().map((product) => (
                     <Grid item xs={12} sm={6} md={3} key={product._id}>
-                      <ProductCard product={product} />
+                      <ProductCard product={product} currentCategory={selectedCategories[0]} />
                     </Grid>
                   ))}
                 </Grid>
@@ -444,7 +509,8 @@ const ShopPage = () => {
           </Box>
         </DialogContent>
       </Dialog>
-    </Container>
+      </Container>
+    </>
   );
 };
 

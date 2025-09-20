@@ -1,5 +1,4 @@
 import { Box, Button, Grid, IconButton, Paper, Stack, TextField, Typography, useMediaQuery, useTheme } from '@mui/material'
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {useDispatch,useSelector} from 'react-redux'
 import { createWishlistItemAsync, deleteWishlistItemByIdAsync, resetWishlistFetchStatus, resetWishlistItemAddStatus, resetWishlistItemDeleteStatus, resetWishlistItemUpdateStatus, selectWishlistFetchStatus, selectWishlistItemAddStatus, selectWishlistItemDeleteStatus, selectWishlistItemUpdateStatus, selectWishlistItems, updateWishlistItemByIdAsync } from '../WishlistSlice'
 import {ProductCard} from '../../products/components/ProductCard'
@@ -153,11 +152,8 @@ export const Wishlist = () => {
 
         <Stack width={is1130?"auto":'70rem'} rowGap={is480?2:4}>
 
-            {/* heading area and back button */}
+            {/* heading */}
             <Stack alignSelf={'flex-start'} flexDirection={'row'} columnGap={1} justifyContent={'center'} alignItems={'center'}>
-                <motion.div whileHover={{x:-5}}>
-                  <IconButton component={Link} to={'/'}><ArrowBackIcon fontSize={is480?'medium':'large'}/></IconButton>
-                </motion.div>
                 <Typography variant='h4' fontWeight={500}>Your wishlist</Typography>
             </Stack>
 
